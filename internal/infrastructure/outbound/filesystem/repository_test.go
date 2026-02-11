@@ -1,20 +1,11 @@
+//go:build integration
+
 package filesystem_test
 
 import (
 	"context"
 	"testing"
-
-	"github.com/sophialabs/proteusmock/internal/infrastructure/outbound/filesystem"
 )
-
-func newTestRepo(t *testing.T, rootDir string) *filesystem.YAMLRepository {
-	t.Helper()
-	repo, err := filesystem.NewYAMLRepository(rootDir)
-	if err != nil {
-		t.Fatalf("NewYAMLRepository failed: %v", err)
-	}
-	return repo
-}
 
 func TestYAMLRepository_LoadAll_SimpleScenario(t *testing.T) {
 	repo := newTestRepo(t, "../../../../testdata")
@@ -175,10 +166,37 @@ func TestYAMLRepository_LoadAll_IncludeResolution(t *testing.T) {
 	t.Error("include-test scenario not found")
 }
 
-func TestYAMLRepository_LoadAll_NonexistentDir(t *testing.T) {
-	repo := newTestRepo(t, "/nonexistent/path")
-	_, err := repo.LoadAll(context.Background())
-	if err == nil {
-		t.Error("expected error for nonexistent directory")
+func TestYAMLRepository_LoadAll_Pagination(t *testing.T) {
+	repo := newTestRepo(t, "../../../../testdata")
+	scenarios, err := repo.LoadAll(context.Background())
+	if err != nil {
+		t.Fatalf("LoadAll failed: %v", err)
 	}
+
+	for _, s := range scenarios {
+		if s.ID == "paginated-test" {
+			if s.Policy == nil {
+				t.Fatal("expected policy")
+			}
+			if s.Policy.Pagination == nil {
+				t.Fatal("expected pagination")
+			}
+			p := s.Policy.Pagination
+			if p.DataPath != "$.items" {
+				t.Errorf("expected data_path '$.items', got %q", p.DataPath)
+			}
+			if p.DefaultSize != 5 {
+				t.Errorf("expected default_size 5, got %d", p.DefaultSize)
+			}
+			// Verify defaults are applied.
+			if p.PageParam != "page" {
+				t.Errorf("expected default page_param 'page', got %q", p.PageParam)
+			}
+			if p.MaxSize != 100 {
+				t.Errorf("expected default max_size 100, got %d", p.MaxSize)
+			}
+			return
+		}
+	}
+	t.Error("paginated-test scenario not found")
 }

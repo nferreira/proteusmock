@@ -67,6 +67,30 @@ func TestRingBuffer_LastZero(t *testing.T) {
 	}
 }
 
+func TestRingBuffer_DefaultSize(t *testing.T) {
+	tests := []struct {
+		name string
+		size int
+	}{
+		{"zero defaults to 100", 0},
+		{"negative defaults to 100", -1},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rb := trace.NewRingBuffer(tt.size)
+
+			// Fill beyond default capacity to verify wrap-around works.
+			for i := range 105 {
+				rb.Add(trace.Entry{Path: "/" + string(rune('a'+i%26))})
+			}
+			if rb.Count() != 100 {
+				t.Errorf("expected count 100, got %d", rb.Count())
+			}
+		})
+	}
+}
+
 func TestRingBuffer_Concurrency(t *testing.T) {
 	rb := trace.NewRingBuffer(100)
 	var wg sync.WaitGroup

@@ -1,3 +1,5 @@
+//go:build integration
+
 package filesystem_test
 
 import (
@@ -8,20 +10,14 @@ import (
 	"time"
 
 	"github.com/sophialabs/proteusmock/internal/infrastructure/outbound/filesystem"
+	"github.com/sophialabs/proteusmock/internal/testutil"
 )
-
-type testLogger struct{}
-
-func (l *testLogger) Info(string, ...any)  {}
-func (l *testLogger) Warn(string, ...any)  {}
-func (l *testLogger) Error(string, ...any) {}
-func (l *testLogger) Debug(string, ...any) {}
 
 func TestWatcher_DetectsFileCreate(t *testing.T) {
 	tmpDir := t.TempDir()
 
 	var reloadCount atomic.Int32
-	w, err := filesystem.NewWatcher(tmpDir, 100*time.Millisecond, &testLogger{}, func() {
+	w, err := filesystem.NewWatcher(tmpDir, 100*time.Millisecond, &testutil.NoopLogger{}, func() {
 		reloadCount.Add(1)
 	})
 	if err != nil {
@@ -51,7 +47,7 @@ func TestWatcher_DetectsFileModify(t *testing.T) {
 	os.WriteFile(f, []byte("id: v1"), 0644)
 
 	var reloadCount atomic.Int32
-	w, err := filesystem.NewWatcher(tmpDir, 100*time.Millisecond, &testLogger{}, func() {
+	w, err := filesystem.NewWatcher(tmpDir, 100*time.Millisecond, &testutil.NoopLogger{}, func() {
 		reloadCount.Add(1)
 	})
 	if err != nil {
@@ -74,7 +70,7 @@ func TestWatcher_IgnoresNonYAML(t *testing.T) {
 	tmpDir := t.TempDir()
 
 	var reloadCount atomic.Int32
-	w, err := filesystem.NewWatcher(tmpDir, 100*time.Millisecond, &testLogger{}, func() {
+	w, err := filesystem.NewWatcher(tmpDir, 100*time.Millisecond, &testutil.NoopLogger{}, func() {
 		reloadCount.Add(1)
 	})
 	if err != nil {
@@ -93,11 +89,68 @@ func TestWatcher_IgnoresNonYAML(t *testing.T) {
 	}
 }
 
+func TestWatcher_DetectsNewDirectory(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	var reloadCount atomic.Int32
+	w, err := filesystem.NewWatcher(tmpDir, 100*time.Millisecond, &testutil.NoopLogger{}, func() {
+		reloadCount.Add(1)
+	})
+	if err != nil {
+		t.Fatalf("NewWatcher failed: %v", err)
+	}
+	defer w.Stop()
+	w.Start()
+
+	// Create a new subdirectory with a YAML file.
+	subDir := filepath.Join(tmpDir, "subdir")
+	os.MkdirAll(subDir, 0o755)
+	time.Sleep(200 * time.Millisecond) // let watcher add the new dir
+
+	os.WriteFile(filepath.Join(subDir, "new.yaml"), []byte("id: new"), 0o644)
+
+	time.Sleep(500 * time.Millisecond)
+
+	if reloadCount.Load() < 1 {
+		t.Error("expected at least one reload for new directory + file")
+	}
+}
+
+func TestWatcher_InvalidDirectory(t *testing.T) {
+	_, err := filesystem.NewWatcher("/nonexistent/path", 100*time.Millisecond, &testutil.NoopLogger{}, func() {})
+	if err == nil {
+		t.Error("expected error for invalid directory")
+	}
+}
+
+func TestWatcher_YMLExtension(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	var reloadCount atomic.Int32
+	w, err := filesystem.NewWatcher(tmpDir, 100*time.Millisecond, &testutil.NoopLogger{}, func() {
+		reloadCount.Add(1)
+	})
+	if err != nil {
+		t.Fatalf("NewWatcher failed: %v", err)
+	}
+	defer w.Stop()
+	w.Start()
+
+	// Create a .yml file.
+	os.WriteFile(filepath.Join(tmpDir, "test.yml"), []byte("id: test"), 0o644)
+
+	time.Sleep(500 * time.Millisecond)
+
+	if reloadCount.Load() < 1 {
+		t.Error("expected at least one reload for .yml file")
+	}
+}
+
 func TestWatcher_Debounce(t *testing.T) {
 	tmpDir := t.TempDir()
 
 	var reloadCount atomic.Int32
-	w, err := filesystem.NewWatcher(tmpDir, 200*time.Millisecond, &testLogger{}, func() {
+	w, err := filesystem.NewWatcher(tmpDir, 200*time.Millisecond, &testutil.NoopLogger{}, func() {
 		reloadCount.Add(1)
 	})
 	if err != nil {

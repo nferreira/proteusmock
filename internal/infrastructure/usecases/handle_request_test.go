@@ -184,6 +184,107 @@ func TestHandleRequest_ContentTypeInference(t *testing.T) {
 	}
 }
 
+func TestHandleRequest_LatencyCancelled(t *testing.T) {
+	uc := newHandleRequestUC(true)
+	req := &match.IncomingRequest{
+		Method:  "GET",
+		Path:    "/api/slow",
+		Headers: map[string]string{},
+	}
+	candidates := []*match.CompiledScenario{
+		{
+			ID:       "slow-cancel",
+			Method:   "GET",
+			PathKey:  "GET:/api/slow",
+			Priority: 10,
+			Predicates: []match.FieldPredicate{
+				{Field: "method", Predicate: func(s string) bool { return s == "GET" }},
+			},
+			Response: match.CompiledResponse{Status: 200, Body: []byte("ok")},
+			Policy: &match.CompiledPolicy{
+				Latency: &match.CompiledLatency{FixedMs: 5000}, // 5 seconds
+			},
+		},
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel() // Cancel immediately.
+
+	result := uc.Execute(ctx, req, candidates)
+
+	if !result.Matched {
+		t.Error("expected match even when latency cancelled")
+	}
+}
+
+func TestHandleRequest_PaginationPolicy(t *testing.T) {
+	uc := newHandleRequestUC(true)
+	req := &match.IncomingRequest{
+		Method:  "GET",
+		Path:    "/api/paginated",
+		Headers: map[string]string{},
+	}
+	candidates := []*match.CompiledScenario{
+		{
+			ID:       "paginated",
+			Method:   "GET",
+			PathKey:  "GET:/api/paginated",
+			Priority: 10,
+			Predicates: []match.FieldPredicate{
+				{Field: "method", Predicate: func(s string) bool { return s == "GET" }},
+			},
+			Response: match.CompiledResponse{Status: 200, Body: []byte("[1,2,3]")},
+			Policy: &match.CompiledPolicy{
+				Pagination: &match.CompiledPagination{
+					Style:       "page_size",
+					DefaultSize: 10,
+					MaxSize:     100,
+					DataPath:    "$",
+				},
+			},
+		},
+	}
+
+	result := uc.Execute(context.Background(), req, candidates)
+
+	if !result.Matched {
+		t.Error("expected match")
+	}
+	if result.Pagination == nil {
+		t.Error("expected pagination config in result")
+	}
+}
+
+func TestHandleRequest_RateLimitDefaultKey(t *testing.T) {
+	uc := newHandleRequestUC(true)
+	req := &match.IncomingRequest{
+		Method:  "GET",
+		Path:    "/api/test",
+		Headers: map[string]string{},
+	}
+	candidates := []*match.CompiledScenario{
+		{
+			ID:       "empty-key",
+			Method:   "GET",
+			PathKey:  "GET:/api/test",
+			Priority: 10,
+			Predicates: []match.FieldPredicate{
+				{Field: "method", Predicate: func(s string) bool { return s == "GET" }},
+			},
+			Response: match.CompiledResponse{Status: 200, Body: []byte("ok")},
+			Policy: &match.CompiledPolicy{
+				RateLimit: &match.CompiledRateLimit{Rate: 100, Burst: 10, Key: ""}, // empty key defaults to scenario ID
+			},
+		},
+	}
+
+	result := uc.Execute(context.Background(), req, candidates)
+
+	if !result.Matched {
+		t.Error("expected match")
+	}
+}
+
 func TestHandleRequest_TraceEntryRecorded(t *testing.T) {
 	traceBuf := trace.NewRingBuffer(50)
 	uc := usecases.NewHandleRequestUseCase(

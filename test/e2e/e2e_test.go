@@ -1,60 +1,14 @@
-package proteusmock_test
+//go:build e2e
+
+package e2e_test
 
 import (
-	"context"
 	"encoding/json"
 	"io"
 	"net/http"
-	"net/http/httptest"
 	"strings"
 	"testing"
-	"time"
-
-	"github.com/sophialabs/proteusmock/internal/domain/match"
-	"github.com/sophialabs/proteusmock/internal/domain/trace"
-	inboundhttp "github.com/sophialabs/proteusmock/internal/infrastructure/inbound/http"
-	"github.com/sophialabs/proteusmock/internal/infrastructure/outbound/clock"
-	"github.com/sophialabs/proteusmock/internal/infrastructure/outbound/filesystem"
-	"github.com/sophialabs/proteusmock/internal/infrastructure/outbound/ratelimit"
-	"github.com/sophialabs/proteusmock/internal/infrastructure/outbound/template"
-	"github.com/sophialabs/proteusmock/internal/infrastructure/services"
-	"github.com/sophialabs/proteusmock/internal/infrastructure/usecases"
-	"github.com/sophialabs/proteusmock/internal/testutil"
 )
-
-func setupE2EServer(t *testing.T) *httptest.Server {
-	t.Helper()
-
-	rootDir := "./mock"
-	logger := &testutil.NoopLogger{}
-	repo, err := filesystem.NewYAMLRepository(rootDir)
-	if err != nil {
-		t.Fatalf("failed to create repository: %v", err)
-	}
-	registry := template.NewRegistry()
-	compiler, err := services.NewCompiler(rootDir, registry)
-	if err != nil {
-		t.Fatalf("failed to create compiler: %v", err)
-	}
-	clk := clock.New()
-	rateLimiterStore := ratelimit.NewTokenBucketStore(10 * time.Minute)
-	t.Cleanup(rateLimiterStore.Stop)
-	traceBuf := trace.NewRingBuffer(100)
-	evaluator := match.NewEvaluator()
-
-	loadUC := usecases.NewLoadScenariosUseCase(repo, compiler, logger)
-	handleReqUC := usecases.NewHandleRequestUseCase(evaluator, clk, rateLimiterStore, logger, traceBuf)
-
-	idx, err := loadUC.Execute(context.Background())
-	if err != nil {
-		t.Fatalf("failed to load scenarios: %v", err)
-	}
-
-	server := inboundhttp.NewServer(handleReqUC, loadUC, traceBuf, logger)
-	server.Rebuild(idx)
-
-	return httptest.NewServer(server)
-}
 
 func TestE2E_HealthCheck(t *testing.T) {
 	ts := setupE2EServer(t)
@@ -623,7 +577,7 @@ func TestE2E_PaginationPageSize_SpecificPage(t *testing.T) {
 	ts := setupE2EServer(t)
 	defer ts.Close()
 
-	resp, err := http.Get(ts.URL + "/api/v1/paginated/users?page=2&size=3")
+	resp, err := http.Get(ts.URL + "/api/v1/paginated/users?page=2&page_size=3")
 	if err != nil {
 		t.Fatalf("request failed: %v", err)
 	}

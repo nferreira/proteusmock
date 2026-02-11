@@ -137,4 +137,34 @@ func TestScenarioIndex_Empty(t *testing.T) {
 	if len(idx.All()) != 0 {
 		t.Error("expected empty All()")
 	}
+	if len(idx.Keys()) != 0 {
+		t.Error("expected empty Keys()")
+	}
+}
+
+func TestScenarioIndex_AllAndKeys(t *testing.T) {
+	idx := services.NewScenarioIndex()
+
+	idx.Add(&match.CompiledScenario{ID: "a", Method: "GET", PathKey: "GET:/api/items"})
+	idx.Add(&match.CompiledScenario{ID: "b", Method: "POST", PathKey: "POST:/api/items"})
+	idx.Add(&match.CompiledScenario{ID: "c", Method: "GET", PathKey: "GET:/api/health"})
+
+	idx.Build()
+
+	all := idx.All()
+	if len(all) != 3 {
+		t.Errorf("expected 3 scenarios from All(), got %d", len(all))
+	}
+
+	keys := idx.Keys()
+	if len(keys) != 3 {
+		t.Errorf("expected 3 keys, got %d", len(keys))
+	}
+	// Keys should be sorted.
+	for i := 1; i < len(keys); i++ {
+		if keys[i] < keys[i-1] {
+			t.Errorf("keys not sorted: %v", keys)
+			break
+		}
+	}
 }

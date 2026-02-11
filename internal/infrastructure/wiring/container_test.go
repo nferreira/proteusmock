@@ -116,6 +116,26 @@ func TestNew_LoggerIsPassedThrough(t *testing.T) {
 	}
 }
 
+func TestNew_WithDefaultEngine(t *testing.T) {
+	p := validParams(t)
+	p.DefaultEngine = "expr"
+
+	c, err := wiring.New(p)
+	if err != nil {
+		t.Fatalf("New failed: %v", err)
+	}
+	defer c.Close()
+
+	idx, err := c.LoadScenariosUseCase().Execute(context.Background())
+	if err != nil {
+		t.Fatalf("Execute failed: %v", err)
+	}
+	// The scenario should compile with expr engine since the registry is available.
+	if len(idx.All()) != 1 {
+		t.Errorf("expected 1 scenario, got %d", len(idx.All()))
+	}
+}
+
 func TestClose_IsIdempotent(t *testing.T) {
 	p := validParams(t)
 	c, err := wiring.New(p)

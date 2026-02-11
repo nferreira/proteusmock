@@ -15,16 +15,25 @@ run: ## Run the server (--root ./mock --port 8080)
 
 # ── Testing ──────────────────────────────────────────────────────────
 
-.PHONY: test test-race test-cover
+.PHONY: test test-integration test-e2e test-all test-race test-cover
 
-test: ## Run all tests
+test: ## Run unit tests only (fast)
 	go test ./...
 
-test-race: ## Run all tests with race detector
+test-integration: ## Run unit + integration tests
+	go test -tags=integration -count=1 ./...
+
+test-e2e: ## Run E2E tests only
+	go test -tags=e2e -count=1 ./test/e2e/...
+
+test-all: ## Run all tests (unit + integration + E2E) with race detector
+	go test -tags="integration,e2e" -race -count=1 ./...
+
+test-race: ## Run unit tests with race detector
 	go test -race -count=1 ./...
 
-test-cover: ## Run tests with coverage report
-	go test -race -coverprofile=coverage.out ./...
+test-cover: ## Run unit + integration tests with coverage report
+	go test -tags=integration -race -coverprofile=coverage.out ./...
 	go tool cover -func=coverage.out
 	@echo "---"
 	@echo "To view HTML report: go tool cover -html=coverage.out"

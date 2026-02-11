@@ -221,6 +221,110 @@ func TestJinja2Compiler_ToJSON(t *testing.T) {
 	}
 }
 
+func TestJinja2Compiler_NowFormat(t *testing.T) {
+	c := &Jinja2Compiler{}
+	renderer, err := c.Compile("test", `{{ nowFormat("2006-01-02") }}`)
+	if err != nil {
+		t.Fatalf("Compile failed: %v", err)
+	}
+
+	result, err := renderer.Render(match.RenderContext{
+		Now: "2025-01-15T10:30:00Z",
+	})
+	if err != nil {
+		t.Fatalf("Render failed: %v", err)
+	}
+	if string(result) != "2025-01-15" {
+		t.Errorf("expected '2025-01-15', got %q", result)
+	}
+}
+
+func TestJinja2Compiler_NowFormatInvalidDate(t *testing.T) {
+	c := &Jinja2Compiler{}
+	renderer, err := c.Compile("test", `{{ nowFormat("2006-01-02") }}`)
+	if err != nil {
+		t.Fatalf("Compile failed: %v", err)
+	}
+
+	result, err := renderer.Render(match.RenderContext{
+		Now: "not-a-date",
+	})
+	if err != nil {
+		t.Fatalf("Render failed: %v", err)
+	}
+	if string(result) != "not-a-date" {
+		t.Errorf("expected fallback 'not-a-date', got %q", result)
+	}
+}
+
+func TestJinja2Compiler_RandomInt(t *testing.T) {
+	c := &Jinja2Compiler{}
+	renderer, err := c.Compile("test", `{{ randomInt(5, 5) }}`)
+	if err != nil {
+		t.Fatalf("Compile failed: %v", err)
+	}
+
+	result, err := renderer.Render(match.RenderContext{})
+	if err != nil {
+		t.Fatalf("Render failed: %v", err)
+	}
+	if string(result) != "5" {
+		t.Errorf("expected '5', got %q", result)
+	}
+}
+
+func TestJinja2Compiler_HeaderMissing(t *testing.T) {
+	c := &Jinja2Compiler{}
+	renderer, err := c.Compile("test", `[{{ header("X-Missing") }}]`)
+	if err != nil {
+		t.Fatalf("Compile failed: %v", err)
+	}
+
+	result, err := renderer.Render(match.RenderContext{
+		Headers: map[string]string{},
+	})
+	if err != nil {
+		t.Fatalf("Render failed: %v", err)
+	}
+	if string(result) != "[]" {
+		t.Errorf("expected '[]', got %q", result)
+	}
+}
+
+func TestJinja2Compiler_PathParam(t *testing.T) {
+	c := &Jinja2Compiler{}
+	renderer, err := c.Compile("test", `id={{ pathParam("id") }}`)
+	if err != nil {
+		t.Fatalf("Compile failed: %v", err)
+	}
+
+	result, err := renderer.Render(match.RenderContext{
+		PathParams: map[string]string{"id": "42"},
+	})
+	if err != nil {
+		t.Fatalf("Render failed: %v", err)
+	}
+	if string(result) != "id=42" {
+		t.Errorf("expected 'id=42', got %q", result)
+	}
+}
+
+func TestJinja2Compiler_SeqEmpty(t *testing.T) {
+	c := &Jinja2Compiler{}
+	renderer, err := c.Compile("test", `{{ toJSON(seq(5, 3)) }}`)
+	if err != nil {
+		t.Fatalf("Compile failed: %v", err)
+	}
+
+	result, err := renderer.Render(match.RenderContext{})
+	if err != nil {
+		t.Fatalf("Render failed: %v", err)
+	}
+	if string(result) != "null" {
+		t.Errorf("expected 'null', got %q", result)
+	}
+}
+
 func TestJinja2Compiler_JsonPath(t *testing.T) {
 	c := &Jinja2Compiler{}
 	renderer, err := c.Compile("test", `name={{ jsonPath("$.name") }}`)
@@ -236,5 +340,39 @@ func TestJinja2Compiler_JsonPath(t *testing.T) {
 	}
 	if !strings.Contains(string(result), "Alice") {
 		t.Errorf("expected result to contain 'Alice', got %q", result)
+	}
+}
+
+func TestJinja2Compiler_RandomIntRange(t *testing.T) {
+	c := &Jinja2Compiler{}
+	renderer, err := c.Compile("test", `{{ randomInt(1, 10) }}`)
+	if err != nil {
+		t.Fatalf("Compile failed: %v", err)
+	}
+
+	result, err := renderer.Render(match.RenderContext{})
+	if err != nil {
+		t.Fatalf("Render failed: %v", err)
+	}
+	if len(string(result)) == 0 {
+		t.Error("expected non-empty result")
+	}
+}
+
+func TestJinja2Compiler_JsonPathInvalidJSON(t *testing.T) {
+	c := &Jinja2Compiler{}
+	renderer, err := c.Compile("test", `[{{ jsonPath("$.name") }}]`)
+	if err != nil {
+		t.Fatalf("Compile failed: %v", err)
+	}
+
+	result, err := renderer.Render(match.RenderContext{
+		Body: []byte("not json"),
+	})
+	if err != nil {
+		t.Fatalf("Render failed: %v", err)
+	}
+	if string(result) != "[]" {
+		t.Errorf("expected '[]', got %q", result)
 	}
 }

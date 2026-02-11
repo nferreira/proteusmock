@@ -129,6 +129,35 @@ func TestEvaluator_FailedPredicateTrace(t *testing.T) {
 	}
 }
 
+func TestEvaluator_BodyFieldPredicate(t *testing.T) {
+	eval := match.NewEvaluator()
+	req := &match.IncomingRequest{
+		Method: "POST",
+		Path:   "/api/items",
+		Body:   []byte(`{"name":"test"}`),
+	}
+
+	candidates := []*match.CompiledScenario{
+		{
+			ID:       "body-match",
+			Name:     "Body Match",
+			Priority: 10,
+			Predicates: []match.FieldPredicate{
+				{Field: "body", Predicate: func(s string) bool { return s == `{"name":"test"}` }},
+			},
+			Response: match.CompiledResponse{Status: 200},
+		},
+	}
+
+	result := eval.Evaluate(req, candidates)
+	if result.Matched == nil {
+		t.Fatal("expected a match for field 'body'")
+	}
+	if result.Matched.ID != "body-match" {
+		t.Errorf("expected match ID 'body-match', got %q", result.Matched.ID)
+	}
+}
+
 func TestEvaluator_DeterministicIDOrdering(t *testing.T) {
 	eval := match.NewEvaluator()
 	req := &match.IncomingRequest{Method: "GET", Path: "/"}

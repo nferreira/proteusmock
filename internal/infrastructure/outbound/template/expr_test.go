@@ -267,6 +267,167 @@ func TestExprCompiler_JsonPath(t *testing.T) {
 	}
 }
 
+func TestExprCompiler_NowFormat(t *testing.T) {
+	c := &ExprCompiler{}
+	renderer, err := c.Compile("test", `${nowFormat('2006-01-02')}`)
+	if err != nil {
+		t.Fatalf("Compile failed: %v", err)
+	}
+
+	result, err := renderer.Render(match.RenderContext{
+		Now: "2025-01-15T10:30:00Z",
+	})
+	if err != nil {
+		t.Fatalf("Render failed: %v", err)
+	}
+	if string(result) != "2025-01-15" {
+		t.Errorf("expected '2025-01-15', got %q", result)
+	}
+}
+
+func TestExprCompiler_NowFormatInvalidDate(t *testing.T) {
+	c := &ExprCompiler{}
+	renderer, err := c.Compile("test", `${nowFormat('2006-01-02')}`)
+	if err != nil {
+		t.Fatalf("Compile failed: %v", err)
+	}
+
+	result, err := renderer.Render(match.RenderContext{
+		Now: "not-a-date",
+	})
+	if err != nil {
+		t.Fatalf("Render failed: %v", err)
+	}
+	// Falls back to raw Now string.
+	if string(result) != "not-a-date" {
+		t.Errorf("expected 'not-a-date', got %q", result)
+	}
+}
+
+func TestExprCompiler_RandomIntEqualMinMax(t *testing.T) {
+	c := &ExprCompiler{}
+	renderer, err := c.Compile("test", `${randomInt(5, 5)}`)
+	if err != nil {
+		t.Fatalf("Compile failed: %v", err)
+	}
+
+	result, err := renderer.Render(match.RenderContext{})
+	if err != nil {
+		t.Fatalf("Render failed: %v", err)
+	}
+	if string(result) != "5" {
+		t.Errorf("expected '5', got %q", result)
+	}
+}
+
+func TestExprCompiler_SeqReverse(t *testing.T) {
+	c := &ExprCompiler{}
+	renderer, err := c.Compile("test", `${toJSON(seq(5, 3))}`)
+	if err != nil {
+		t.Fatalf("Compile failed: %v", err)
+	}
+
+	result, err := renderer.Render(match.RenderContext{})
+	if err != nil {
+		t.Fatalf("Render failed: %v", err)
+	}
+	// end < start returns nil → toJSON(nil)
+	if string(result) != "null" {
+		t.Errorf("expected 'null', got %q", result)
+	}
+}
+
+func TestExprCompiler_JsonPathInvalidJSON(t *testing.T) {
+	c := &ExprCompiler{}
+	renderer, err := c.Compile("test", `${jsonPath('$.name')}`)
+	if err != nil {
+		t.Fatalf("Compile failed: %v", err)
+	}
+
+	result, err := renderer.Render(match.RenderContext{
+		Body: []byte("not json"),
+	})
+	if err != nil {
+		t.Fatalf("Render failed: %v", err)
+	}
+	if string(result) != "" {
+		t.Errorf("expected empty string for invalid JSON, got %q", result)
+	}
+}
+
+func TestExprCompiler_JsonPathInvalidExpression(t *testing.T) {
+	c := &ExprCompiler{}
+	renderer, err := c.Compile("test", `${jsonPath('$[invalid')}`)
+	if err != nil {
+		t.Fatalf("Compile failed: %v", err)
+	}
+
+	result, err := renderer.Render(match.RenderContext{
+		Body: []byte(`{"name":"test"}`),
+	})
+	if err != nil {
+		t.Fatalf("Render failed: %v", err)
+	}
+	if string(result) != "" {
+		t.Errorf("expected empty string for invalid path, got %q", result)
+	}
+}
+
+func TestExprCompiler_JsonPathNonStringResult(t *testing.T) {
+	c := &ExprCompiler{}
+	renderer, err := c.Compile("test", `${jsonPath('$.age')}`)
+	if err != nil {
+		t.Fatalf("Compile failed: %v", err)
+	}
+
+	result, err := renderer.Render(match.RenderContext{
+		Body: []byte(`{"age":42}`),
+	})
+	if err != nil {
+		t.Fatalf("Render failed: %v", err)
+	}
+	if string(result) != "42" {
+		t.Errorf("expected '42', got %q", result)
+	}
+}
+
+func TestExprCompiler_EscapedStringInExpression(t *testing.T) {
+	// Tests the findClosingBrace escaped character path.
+	c := &ExprCompiler{}
+	renderer, err := c.Compile("test", `${pathParam('it\'s')}`)
+	if err != nil {
+		t.Fatalf("Compile failed: %v", err)
+	}
+
+	result, err := renderer.Render(match.RenderContext{
+		PathParams: map[string]string{"it's": "works"},
+	})
+	if err != nil {
+		t.Fatalf("Render failed: %v", err)
+	}
+	if string(result) != "works" {
+		t.Errorf("expected 'works', got %q", result)
+	}
+}
+
+func TestExprCompiler_HeaderMissing(t *testing.T) {
+	c := &ExprCompiler{}
+	renderer, err := c.Compile("test", `[${header('X-Missing')}]`)
+	if err != nil {
+		t.Fatalf("Compile failed: %v", err)
+	}
+
+	result, err := renderer.Render(match.RenderContext{
+		Headers: map[string]string{},
+	})
+	if err != nil {
+		t.Fatalf("Render failed: %v", err)
+	}
+	if string(result) != "[]" {
+		t.Errorf("expected '[]', got %q", result)
+	}
+}
+
 func TestExprCompiler_NestedBraces(t *testing.T) {
 	c := &ExprCompiler{}
 	// Expression with map literal containing braces
@@ -283,5 +444,24 @@ func TestExprCompiler_NestedBraces(t *testing.T) {
 	}
 	if !strings.Contains(string(result), "42") {
 		t.Errorf("expected result to contain '42', got %q", result)
+	}
+}
+
+func TestExprCompiler_DoubleQuotedString(t *testing.T) {
+	// Tests findClosingBrace double-quote string handling.
+	c := &ExprCompiler{}
+	renderer, err := c.Compile("test", `${pathParam("name")}`)
+	if err != nil {
+		t.Fatalf("Compile failed: %v", err)
+	}
+
+	result, err := renderer.Render(match.RenderContext{
+		PathParams: map[string]string{"name": "test"},
+	})
+	if err != nil {
+		t.Fatalf("Render failed: %v", err)
+	}
+	if string(result) != "test" {
+		t.Errorf("expected 'test', got %q", result)
 	}
 }
