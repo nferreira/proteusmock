@@ -361,5 +361,27 @@ func compilePolicy(p *scenario.Policy) *match.CompiledPolicy {
 		}
 	}
 
+	if p.Pagination != nil {
+		cp.Pagination = &match.CompiledPagination{
+			Style:       string(p.Pagination.Style),
+			PageParam:   p.Pagination.PageParam,
+			SizeParam:   p.Pagination.SizeParam,
+			OffsetParam: p.Pagination.OffsetParam,
+			LimitParam:  p.Pagination.LimitParam,
+			DefaultSize: p.Pagination.DefaultSize,
+			MaxSize:     p.Pagination.MaxSize,
+			DataPath:    p.Pagination.DataPath,
+			Envelope: match.CompiledPaginationEnvelope{
+				DataField:        p.Pagination.Envelope.DataField,
+				PageField:        p.Pagination.Envelope.PageField,
+				SizeField:        p.Pagination.Envelope.SizeField,
+				TotalItemsField:  p.Pagination.Envelope.TotalItemsField,
+				TotalPagesField:  p.Pagination.Envelope.TotalPagesField,
+				HasNextField:     p.Pagination.Envelope.HasNextField,
+				HasPreviousField: p.Pagination.Envelope.HasPreviousField,
+			},
+		}
+	}
+
 	return cp
 }

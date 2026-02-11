@@ -1,0 +1,25 @@
+# Pagination with expr template engine — data generated dynamically, then paginated.
+#
+# Try it:
+#   curl "http://localhost:8080/api/v1/paginated/catalog?page=1&size=5"
+#   curl "http://localhost:8080/api/v1/paginated/catalog?page=2&size=5"
+
+id: showcase-pagination-with-template
+name: "Pagination: with expr template"
+priority: 10
+when:
+  method: GET
+  path: /api/v1/paginated/catalog
+policy:
+  pagination:
+    default_size: 5
+    data_path: "$.items"
+response:
+  status: 200
+  engine: expr
+  headers:
+    Content-Type: application/json
+  body: |
+    {
+      "items": ${toJSON(seq(1, 20))}
+    }

@@ -16,6 +16,7 @@ type HandleRequestResult struct {
 	Matched     bool
 	Response    *match.CompiledResponse
 	RateLimited bool
+	Pagination  *match.CompiledPagination
 	TraceEntry  trace.Entry
 }
 
@@ -107,6 +108,11 @@ func (uc *HandleRequestUseCase) Execute(ctx context.Context, req *match.Incoming
 		resp.ContentType = services.InferContentType("", "", resp.Body)
 	}
 	result.Response = &resp
+
+	if matched.Policy != nil && matched.Policy.Pagination != nil {
+		result.Pagination = matched.Policy.Pagination
+	}
+
 	result.TraceEntry = entry
 	uc.traceBuf.Add(entry)
 

@@ -89,8 +89,9 @@ type CompiledResponse struct {
 
 // CompiledPolicy holds resolved policy configuration.
 type CompiledPolicy struct {
-	RateLimit *CompiledRateLimit
-	Latency   *CompiledLatency
+	RateLimit  *CompiledRateLimit
+	Latency    *CompiledLatency
+	Pagination *CompiledPagination
 }
 
 // CompiledRateLimit holds rate limit parameters.
@@ -104,4 +105,28 @@ type CompiledRateLimit struct {
 type CompiledLatency struct {
 	FixedMs  int
 	JitterMs int
+}
+
+// CompiledPagination holds resolved pagination configuration.
+type CompiledPagination struct {
+	Style       string // "page_size" or "offset_limit"
+	PageParam   string
+	SizeParam   string
+	OffsetParam string
+	LimitParam  string
+	DefaultSize int
+	MaxSize     int
+	DataPath    string
+	Envelope    CompiledPaginationEnvelope
+}
+
+// CompiledPaginationEnvelope holds resolved envelope field names.
+type CompiledPaginationEnvelope struct {
+	DataField        string
+	PageField        string
+	SizeField        string
+	TotalItemsField  string
+	TotalPagesField  string
+	HasNextField     string
+	HasPreviousField string
 }

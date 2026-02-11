@@ -66,10 +66,11 @@ type Response struct {
 	Engine      string // "" = static, "expr", "jinja2"
 }
 
-// Policy defines rate limiting and latency simulation.
+// Policy defines rate limiting, latency simulation, and pagination.
 type Policy struct {
-	RateLimit *RateLimit
-	Latency   *Latency
+	RateLimit  *RateLimit
+	Latency    *Latency
+	Pagination *Pagination
 }
 
 // RateLimit configures token-bucket rate limiting.
@@ -83,4 +84,36 @@ type RateLimit struct {
 type Latency struct {
 	FixedMs  int
 	JitterMs int
+}
+
+// PaginationStyle determines how pagination parameters are interpreted.
+type PaginationStyle string
+
+const (
+	PaginationPageSize    PaginationStyle = "page_size"
+	PaginationOffsetLimit PaginationStyle = "offset_limit"
+)
+
+// Pagination configures automatic response pagination.
+type Pagination struct {
+	Style       PaginationStyle
+	PageParam   string
+	SizeParam   string
+	OffsetParam string
+	LimitParam  string
+	DefaultSize int
+	MaxSize     int
+	DataPath    string
+	Envelope    PaginationEnvelope
+}
+
+// PaginationEnvelope configures the field names in the paginated response wrapper.
+type PaginationEnvelope struct {
+	DataField        string
+	PageField        string
+	SizeField        string
+	TotalItemsField  string
+	TotalPagesField  string
+	HasNextField     string
+	HasPreviousField string
 }

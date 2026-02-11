@@ -1,0 +1,46 @@
+# Automatic pagination — page+page_size style.
+#
+# Define the full dataset once; ProteusMock slices it automatically based on
+# ?page= and ?page_size= query parameters.
+#
+# Try it:
+#   curl http://localhost:8080/api/v1/paginated/users
+#   curl "http://localhost:8080/api/v1/paginated/users?page=1&page_size=2"
+#   curl "http://localhost:8080/api/v1/paginated/users?page=2&page_size=3"
+#   curl "http://localhost:8080/api/v1/paginated/users?page=99&page_size=5"
+
+id: showcase-pagination-page-size
+name: "Pagination: page+page_size style"
+priority: 10
+when:
+  method: GET
+  path: /api/v1/paginated/users
+policy:
+  pagination:
+    style: page_size
+    page_param: page
+    size_param: page_size
+    default_size: 5
+    max_size: 20
+    data_path: "$.users"
+response:
+  status: 200
+  headers:
+    Content-Type: application/json
+  body: |
+    {
+      "users": [
+        {"id": 1, "name": "Alice", "email": "alice@example.com"},
+        {"id": 2, "name": "Bob", "email": "bob@example.com"},
+        {"id": 3, "name": "Charlie", "email": "charlie@example.com"},
+        {"id": 4, "name": "Diana", "email": "diana@example.com"},
+        {"id": 5, "name": "Eve", "email": "eve@example.com"},
+        {"id": 6, "name": "Frank", "email": "frank@example.com"},
+        {"id": 7, "name": "Grace", "email": "grace@example.com"},
+        {"id": 8, "name": "Hank", "email": "hank@example.com"},
+        {"id": 9, "name": "Ivy", "email": "ivy@example.com"},
+        {"id": 10, "name": "Jack", "email": "jack@example.com"},
+        {"id": 11, "name": "Karen", "email": "karen@example.com"},
+        {"id": 12, "name": "Leo", "email": "leo@example.com"}
+      ]
+    }

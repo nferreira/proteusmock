@@ -217,5 +217,90 @@ func toPolicy(yp *yamlPolicy) *scenario.Policy {
 		}
 	}
 
+	if yp.Pagination != nil {
+		p.Pagination = toPagination(yp.Pagination)
+	}
+
 	return p
+}
+
+func toPagination(yp *yamlPagination) *scenario.Pagination {
+	p := &scenario.Pagination{
+		Style:       scenario.PaginationStyle(yp.Style),
+		PageParam:   yp.PageParam,
+		SizeParam:   yp.SizeParam,
+		OffsetParam: yp.OffsetParam,
+		LimitParam:  yp.LimitParam,
+		DefaultSize: yp.DefaultSize,
+		MaxSize:     yp.MaxSize,
+		DataPath:    yp.DataPath,
+	}
+
+	switch p.Style {
+	case scenario.PaginationPageSize, scenario.PaginationOffsetLimit:
+		// valid
+	default:
+		p.Style = scenario.PaginationPageSize
+	}
+	if p.PageParam == "" {
+		p.PageParam = "page"
+	}
+	if p.SizeParam == "" {
+		p.SizeParam = "size"
+	}
+	if p.OffsetParam == "" {
+		p.OffsetParam = "offset"
+	}
+	if p.LimitParam == "" {
+		p.LimitParam = "limit"
+	}
+	if p.DefaultSize == 0 {
+		p.DefaultSize = 10
+	}
+	if p.MaxSize == 0 {
+		p.MaxSize = 100
+	}
+	if p.DataPath == "" {
+		p.DataPath = "$"
+	}
+
+	p.Envelope = toPaginationEnvelope(yp.Envelope)
+	return p
+}
+
+func toPaginationEnvelope(ye *yamlPaginationEnvelope) scenario.PaginationEnvelope {
+	env := scenario.PaginationEnvelope{
+		DataField:        "data",
+		PageField:        "page",
+		SizeField:        "size",
+		TotalItemsField:  "total_items",
+		TotalPagesField:  "total_pages",
+		HasNextField:     "has_next",
+		HasPreviousField: "has_previous",
+	}
+	if ye == nil {
+		return env
+	}
+	if ye.DataField != "" {
+		env.DataField = ye.DataField
+	}
+	if ye.PageField != "" {
+		env.PageField = ye.PageField
+	}
+	if ye.SizeField != "" {
+		env.SizeField = ye.SizeField
+	}
+	if ye.TotalItemsField != "" {
+		env.TotalItemsField = ye.TotalItemsField
+	}
+	if ye.TotalPagesField != "" {
+		env.TotalPagesField = ye.TotalPagesField
+	}
+	if ye.HasNextField != "" {
+		env.HasNextField = ye.HasNextField
+	}
+	if ye.HasPreviousField != "" {
+		env.HasPreviousField = ye.HasPreviousField
+	}
+	return env
 }

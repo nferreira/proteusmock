@@ -1,5 +1,5 @@
-id: yardi-get-properties
-name: Yardi Get Properties
+id: properties-get-properties
+name: Get Properties
 priority: 20
 when:
   method: POST

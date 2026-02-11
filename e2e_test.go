@@ -232,7 +232,7 @@ func TestE2E_AdminSearchScenarios(t *testing.T) {
 	ts := setupE2EServer(t)
 	defer ts.Close()
 
-	resp, err := http.Get(ts.URL + "/__admin/scenarios/search?q=yardi")
+	resp, err := http.Get(ts.URL + "/__admin/scenarios/search?q=properties")
 	if err != nil {
 		t.Fatalf("request failed: %v", err)
 	}
@@ -241,7 +241,7 @@ func TestE2E_AdminSearchScenarios(t *testing.T) {
 	var results []map[string]any
 	json.NewDecoder(resp.Body).Decode(&results)
 	if len(results) < 2 {
-		t.Errorf("expected at least 2 yardi scenarios, got %d", len(results))
+		t.Errorf("expected at least 2 properties scenarios, got %d", len(results))
 	}
 }
 
@@ -278,7 +278,7 @@ func TestE2E_PriorityMatchingOrder(t *testing.T) {
 	ts := setupE2EServer(t)
 	defer ts.Close()
 
-	// The yardi-get-properties (priority 20) should win over yardi-unauthorized (priority 5)
+	// The properties-get-properties (priority 20) should win over properties-unauthorized (priority 5)
 	// when the body matches.
 	payload := `{"method":{"params":{"contract_id":"100100"}}}`
 	resp, err := http.Post(
@@ -571,5 +571,190 @@ func TestE2E_Jinja2EchoBody(t *testing.T) {
 	}
 	if body["processed_at"] == nil || body["processed_at"] == "" {
 		t.Error("expected non-empty processed_at timestamp")
+	}
+}
+
+// ── Pagination E2E Tests ────────────────────────────────────────────────
+
+func TestE2E_PaginationPageSize_DefaultPage(t *testing.T) {
+	ts := setupE2EServer(t)
+	defer ts.Close()
+
+	resp, err := http.Get(ts.URL + "/api/v1/paginated/users")
+	if err != nil {
+		t.Fatalf("request failed: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		body, _ := io.ReadAll(resp.Body)
+		t.Fatalf("expected 200, got %d: %s", resp.StatusCode, body)
+	}
+
+	var env map[string]any
+	json.NewDecoder(resp.Body).Decode(&env)
+
+	if env["page"].(float64) != 1 {
+		t.Errorf("expected page 1, got %v", env["page"])
+	}
+	if env["size"].(float64) != 5 {
+		t.Errorf("expected size 5, got %v", env["size"])
+	}
+	if env["total_items"].(float64) != 12 {
+		t.Errorf("expected total_items 12, got %v", env["total_items"])
+	}
+	if env["total_pages"].(float64) != 3 {
+		t.Errorf("expected total_pages 3, got %v", env["total_pages"])
+	}
+	if env["has_next"] != true {
+		t.Errorf("expected has_next true, got %v", env["has_next"])
+	}
+	if env["has_previous"] != false {
+		t.Errorf("expected has_previous false, got %v", env["has_previous"])
+	}
+
+	data := env["data"].([]any)
+	if len(data) != 5 {
+		t.Errorf("expected 5 items, got %d", len(data))
+	}
+}
+
+func TestE2E_PaginationPageSize_SpecificPage(t *testing.T) {
+	ts := setupE2EServer(t)
+	defer ts.Close()
+
+	resp, err := http.Get(ts.URL + "/api/v1/paginated/users?page=2&size=3")
+	if err != nil {
+		t.Fatalf("request failed: %v", err)
+	}
+	defer resp.Body.Close()
+
+	var env map[string]any
+	json.NewDecoder(resp.Body).Decode(&env)
+
+	if env["page"].(float64) != 2 {
+		t.Errorf("expected page 2, got %v", env["page"])
+	}
+	if env["size"].(float64) != 3 {
+		t.Errorf("expected size 3, got %v", env["size"])
+	}
+	if env["has_next"] != true {
+		t.Errorf("expected has_next true, got %v", env["has_next"])
+	}
+	if env["has_previous"] != true {
+		t.Errorf("expected has_previous true, got %v", env["has_previous"])
+	}
+
+	data := env["data"].([]any)
+	if len(data) != 3 {
+		t.Errorf("expected 3 items, got %d", len(data))
+	}
+
+	// Items should be users 4, 5, 6 (0-indexed ids 4, 5, 6)
+	first := data[0].(map[string]any)
+	if first["id"].(float64) != 4 {
+		t.Errorf("expected first item id 4, got %v", first["id"])
+	}
+}
+
+func TestE2E_PaginationPageSize_BeyondLastPage(t *testing.T) {
+	ts := setupE2EServer(t)
+	defer ts.Close()
+
+	resp, err := http.Get(ts.URL + "/api/v1/paginated/users?page=99&size=5")
+	if err != nil {
+		t.Fatalf("request failed: %v", err)
+	}
+	defer resp.Body.Close()
+
+	var env map[string]any
+	json.NewDecoder(resp.Body).Decode(&env)
+
+	data := env["data"].([]any)
+	if len(data) != 0 {
+		t.Errorf("expected 0 items for beyond-last page, got %d", len(data))
+	}
+	if env["has_next"] != false {
+		t.Errorf("expected has_next false, got %v", env["has_next"])
+	}
+	if env["total_items"].(float64) != 12 {
+		t.Errorf("expected total_items 12, got %v", env["total_items"])
+	}
+}
+
+func TestE2E_PaginationOffsetLimit(t *testing.T) {
+	ts := setupE2EServer(t)
+	defer ts.Close()
+
+	resp, err := http.Get(ts.URL + "/api/v1/paginated/products?offset=3&limit=2")
+	if err != nil {
+		t.Fatalf("request failed: %v", err)
+	}
+	defer resp.Body.Close()
+
+	var env map[string]any
+	json.NewDecoder(resp.Body).Decode(&env)
+
+	// Custom envelope field names
+	results, ok := env["results"].([]any)
+	if !ok {
+		t.Fatal("expected 'results' field (custom envelope)")
+	}
+	if len(results) != 2 {
+		t.Errorf("expected 2 items, got %d", len(results))
+	}
+
+	// Custom total_items_field = "count"
+	if env["count"].(float64) != 7 {
+		t.Errorf("expected count 7, got %v", env["count"])
+	}
+
+	if env["has_next"] != true {
+		t.Errorf("expected has_next true, got %v", env["has_next"])
+	}
+	if env["has_previous"] != true {
+		t.Errorf("expected has_previous true, got %v", env["has_previous"])
+	}
+
+	// First item should be Thingamajig (index 3)
+	first := results[0].(map[string]any)
+	if first["sku"] != "PROD-4" {
+		t.Errorf("expected first sku PROD-4, got %v", first["sku"])
+	}
+}
+
+func TestE2E_PaginationWithTemplate(t *testing.T) {
+	ts := setupE2EServer(t)
+	defer ts.Close()
+
+	resp, err := http.Get(ts.URL + "/api/v1/paginated/catalog?page=2&size=5")
+	if err != nil {
+		t.Fatalf("request failed: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		body, _ := io.ReadAll(resp.Body)
+		t.Fatalf("expected 200, got %d: %s", resp.StatusCode, body)
+	}
+
+	var env map[string]any
+	json.NewDecoder(resp.Body).Decode(&env)
+
+	if env["page"].(float64) != 2 {
+		t.Errorf("expected page 2, got %v", env["page"])
+	}
+	if env["total_items"].(float64) != 20 {
+		t.Errorf("expected total_items 20, got %v", env["total_items"])
+	}
+
+	data := env["data"].([]any)
+	if len(data) != 5 {
+		t.Errorf("expected 5 items, got %d", len(data))
+	}
+
+	// seq(1, 20) produces [1..20]; page 2 size 5 → items 6..10
+	if data[0].(float64) != 6 {
+		t.Errorf("expected first item to be 6, got %v", data[0])
 	}
 }

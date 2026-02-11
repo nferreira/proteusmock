@@ -40,8 +40,9 @@ type yamlResponse struct {
 }
 
 type yamlPolicy struct {
-	RateLimit *yamlRateLimit `yaml:"rate_limit,omitempty"`
-	Latency   *yamlLatency   `yaml:"latency,omitempty"`
+	RateLimit  *yamlRateLimit  `yaml:"rate_limit,omitempty"`
+	Latency    *yamlLatency    `yaml:"latency,omitempty"`
+	Pagination *yamlPagination `yaml:"pagination,omitempty"`
 }
 
 type yamlRateLimit struct {
@@ -53,4 +54,26 @@ type yamlRateLimit struct {
 type yamlLatency struct {
 	FixedMs  int `yaml:"fixed_ms,omitempty"`
 	JitterMs int `yaml:"jitter_ms,omitempty"`
+}
+
+type yamlPagination struct {
+	Style       string                  `yaml:"style,omitempty"`
+	PageParam   string                  `yaml:"page_param,omitempty"`
+	SizeParam   string                  `yaml:"size_param,omitempty"`
+	OffsetParam string                  `yaml:"offset_param,omitempty"`
+	LimitParam  string                  `yaml:"limit_param,omitempty"`
+	DefaultSize int                     `yaml:"default_size,omitempty"`
+	MaxSize     int                     `yaml:"max_size,omitempty"`
+	DataPath    string                  `yaml:"data_path,omitempty"`
+	Envelope    *yamlPaginationEnvelope `yaml:"envelope,omitempty"`
+}
+
+type yamlPaginationEnvelope struct {
+	DataField        string `yaml:"data_field,omitempty"`
+	PageField        string `yaml:"page_field,omitempty"`
+	SizeField        string `yaml:"size_field,omitempty"`
+	TotalItemsField  string `yaml:"total_items_field,omitempty"`
+	TotalPagesField  string `yaml:"total_pages_field,omitempty"`
+	HasNextField     string `yaml:"has_next_field,omitempty"`
+	HasPreviousField string `yaml:"has_previous_field,omitempty"`
 }

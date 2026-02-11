@@ -1,0 +1,154 @@
+# Body condition combinators — any (OR), all (AND), not (NOT), and nested.
+#
+# These scenarios demonstrate how to combine body conditions using boolean
+# logic.  All use engine: expr for dynamic responses that echo matched fields.
+
+# ── OR combinator ────────────────────────────────────────────────────────
+# Matches if payment method is "credit_card" OR "paypal".
+#
+# Try it:
+#   curl -X POST http://localhost:8080/api/v1/payments \
+#        -H "Content-Type: application/json" \
+#        -d '{"method": "credit_card", "amount": 49.99}'
+
+- id: showcase-body-or
+  name: "Body OR: accept credit_card or paypal"
+  priority: 10
+  when:
+    method: POST
+    path: /api/v1/payments
+    body:
+      content_type: json
+      any:
+        - conditions:
+            - extractor: "$.method"
+              matcher: "=credit_card"
+        - conditions:
+            - extractor: "$.method"
+              matcher: "=paypal"
+  response:
+    status: 200
+    engine: expr
+    headers:
+      Content-Type: application/json
+    body: |
+      {
+        "status": "accepted",
+        "payment_method": "${jsonPath('$.method')}",
+        "amount": ${jsonPath('$.amount')},
+        "transaction_id": "${uuid()}"
+      }
+
+# ── AND combinator ───────────────────────────────────────────────────────
+# Matches if status is "confirmed" AND total is at least 3 digits (>= 100).
+#
+# Try it:
+#   curl -X POST http://localhost:8080/api/v1/orders \
+#        -H "Content-Type: application/json" \
+#        -d '{"status": "confirmed", "total": 250, "currency": "USD"}'
+
+- id: showcase-body-and
+  name: "Body AND: confirmed status with high total"
+  priority: 10
+  when:
+    method: POST
+    path: /api/v1/orders
+    body:
+      content_type: json
+      all:
+        - conditions:
+            - extractor: "$.status"
+              matcher: "=confirmed"
+        - conditions:
+            - extractor: "$.total"
+              matcher: "^\\d{3,}"
+  response:
+    status: 200
+    engine: expr
+    headers:
+      Content-Type: application/json
+    body: |
+      {
+        "order_status": "${jsonPath('$.status')}",
+        "total": ${jsonPath('$.total')},
+        "currency": "${jsonPath('$.currency')}",
+        "confirmed_at": "${now()}"
+      }
+
+# ── NOT combinator ───────────────────────────────────────────────────────
+# Matches if role is NOT "banned".
+#
+# Try it:
+#   curl -X POST http://localhost:8080/api/v1/registrations \
+#        -H "Content-Type: application/json" \
+#        -d '{"username": "alice", "role": "user"}'
+
+- id: showcase-body-not
+  name: "Body NOT: reject banned users"
+  priority: 10
+  when:
+    method: POST
+    path: /api/v1/registrations
+    body:
+      content_type: json
+      not:
+        conditions:
+          - extractor: "$.role"
+            matcher: "=banned"
+  response:
+    status: 200
+    engine: expr
+    headers:
+      Content-Type: application/json
+    body: |
+      {
+        "username": "${jsonPath('$.username')}",
+        "role": "${jsonPath('$.role')}",
+        "registered": true,
+        "registration_id": "${uuid()}"
+      }
+
+# ── Nested combinators ──────────────────────────────────────────────────
+# Matches if status is "active" AND (role is "admin" OR "moderator") AND
+# NOT suspended.
+#
+# Try it:
+#   curl -X POST http://localhost:8080/api/v1/access \
+#        -H "Content-Type: application/json" \
+#        -d '{"status": "active", "role": "admin", "suspended": false}'
+
+- id: showcase-body-nested
+  name: "Body nested: active + (admin|moderator) + not suspended"
+  priority: 10
+  when:
+    method: POST
+    path: /api/v1/access
+    body:
+      content_type: json
+      all:
+        - conditions:
+            - extractor: "$.status"
+              matcher: "=active"
+        - any:
+            - conditions:
+                - extractor: "$.role"
+                  matcher: "=admin"
+            - conditions:
+                - extractor: "$.role"
+                  matcher: "=moderator"
+        - not:
+            conditions:
+              - extractor: "$.suspended"
+                matcher: "=true"
+  response:
+    status: 200
+    engine: expr
+    headers:
+      Content-Type: application/json
+    body: |
+      {
+        "access": "granted",
+        "role": "${jsonPath('$.role')}",
+        "status": "${jsonPath('$.status')}",
+        "granted_at": "${now()}"
+      }

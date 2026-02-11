@@ -19,6 +19,7 @@ CYAN='\033[36m'
 GREEN='\033[32m'
 YELLOW='\033[33m'
 MAGENTA='\033[35m'
+BLUE='\033[34m'
 RESET='\033[0m'
 
 # Check if jq is available for pretty-printing JSON.
@@ -41,6 +42,10 @@ banner() {
 
   if [ "$engine" = "expr" ]; then
     tag="${GREEN}[expr]${RESET}"
+  elif [ "$engine" = "body" ]; then
+    tag="${CYAN}[body]${RESET}"
+  elif [ "$engine" = "pagination" ]; then
+    tag="${BLUE}[pagination]${RESET}"
   else
     tag="${MAGENTA}[jinja2]${RESET}"
   fi
@@ -128,6 +133,52 @@ run_curl "POST /api/v1/echo" \
   -d '{"user": {"name": "Alice", "role": "admin"}}'
 
 # ──────────────────────────────────────────────────────────────────────
+#  Body Condition Combinators (any / all / not)
+# ──────────────────────────────────────────────────────────────────────
+
+divider
+banner "body" "OR Combinator — match credit_card or paypal"
+
+run_curl "method=credit_card (matches OR)" \
+  -X POST "${BASE}/api/v1/payments" \
+  -H "Content-Type: application/json" \
+  -d '{"method": "credit_card", "amount": 49.99}'
+echo ""
+run_curl "method=paypal (matches OR)" \
+  -X POST "${BASE}/api/v1/payments" \
+  -H "Content-Type: application/json" \
+  -d '{"method": "paypal", "amount": 25.00}'
+
+divider
+banner "body" "AND Combinator — confirmed status with high total"
+
+run_curl "status=confirmed, total=250 (both match)" \
+  -X POST "${BASE}/api/v1/orders" \
+  -H "Content-Type: application/json" \
+  -d '{"status": "confirmed", "total": 250, "currency": "USD"}'
+
+divider
+banner "body" "NOT Combinator — reject banned users"
+
+run_curl "role=user (not banned → 200)" \
+  -X POST "${BASE}/api/v1/registrations" \
+  -H "Content-Type: application/json" \
+  -d '{"username": "alice", "role": "user"}'
+echo ""
+run_curl "role=banned (banned → 404)" \
+  -X POST "${BASE}/api/v1/registrations" \
+  -H "Content-Type: application/json" \
+  -d '{"username": "troll", "role": "banned"}'
+
+divider
+banner "body" "Nested Combinators — active + (admin|moderator) + not suspended"
+
+run_curl "active admin, not suspended (all conditions met)" \
+  -X POST "${BASE}/api/v1/access" \
+  -H "Content-Type: application/json" \
+  -d '{"status": "active", "role": "admin", "suspended": false}'
+
+# ──────────────────────────────────────────────────────────────────────
 #  Jinja2 Engine Scenarios
 # ──────────────────────────────────────────────────────────────────────
 
@@ -163,6 +214,43 @@ run_curl "POST /api/v1/process" \
   -X POST "${BASE}/api/v1/process" \
   -H "Content-Type: application/json" \
   -d '{"order": {"id": "ORD-999", "amount": 42.50}}'
+
+# ──────────────────────────────────────────────────────────────────────
+#  Pagination Scenarios
+# ──────────────────────────────────────────────────────────────────────
+
+divider
+banner "pagination" "Page+Page_Size — default first page"
+
+run_curl "GET /api/v1/paginated/users (defaults)" \
+  "${BASE}/api/v1/paginated/users"
+
+divider
+banner "pagination" "Page+Page_Size — specific page and page_size"
+
+run_curl "page=1, page_size=2" \
+  "${BASE}/api/v1/paginated/users?page=1&page_size=2"
+echo ""
+run_curl "page=2, page_size=3" \
+  "${BASE}/api/v1/paginated/users?page=2&page_size=3"
+echo ""
+run_curl "page=99 (beyond last → empty data)" \
+  "${BASE}/api/v1/paginated/users?page=99&page_size=5"
+
+divider
+banner "pagination" "Offset+Limit — custom envelope fields"
+
+run_curl "offset=3, limit=2" \
+  "${BASE}/api/v1/paginated/products?offset=3&limit=2"
+
+divider
+banner "pagination" "Pagination with Expr Template — dynamic data"
+
+run_curl "page=1, size=5 (from seq(1,20))" \
+  "${BASE}/api/v1/paginated/catalog?page=1&size=5"
+echo ""
+run_curl "page=2, size=5" \
+  "${BASE}/api/v1/paginated/catalog?page=2&size=5"
 
 divider
 echo -e "${BOLD}${GREEN}All showcase scenarios completed.${RESET}"

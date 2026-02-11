@@ -1,0 +1,39 @@
+# Automatic pagination — offset+limit style with custom envelope fields.
+#
+# Try it:
+#   curl http://localhost:8080/api/v1/paginated/products
+#   curl "http://localhost:8080/api/v1/paginated/products?offset=0&limit=2"
+#   curl "http://localhost:8080/api/v1/paginated/products?offset=3&limit=2"
+
+id: showcase-pagination-offset-limit
+name: "Pagination: offset+limit style"
+priority: 10
+when:
+  method: GET
+  path: /api/v1/paginated/products
+policy:
+  pagination:
+    style: offset_limit
+    offset_param: offset
+    limit_param: limit
+    default_size: 5
+    data_path: "$.products"
+    envelope:
+      data_field: results
+      total_items_field: count
+response:
+  status: 200
+  headers:
+    Content-Type: application/json
+  body: |
+    {
+      "products": [
+        {"sku": "PROD-1", "name": "Widget", "price": 9.99},
+        {"sku": "PROD-2", "name": "Gadget", "price": 19.99},
+        {"sku": "PROD-3", "name": "Doohickey", "price": 4.99},
+        {"sku": "PROD-4", "name": "Thingamajig", "price": 14.99},
+        {"sku": "PROD-5", "name": "Whatchamacallit", "price": 24.99},
+        {"sku": "PROD-6", "name": "Gizmo", "price": 34.99},
+        {"sku": "PROD-7", "name": "Contraption", "price": 44.99}
+      ]
+    }

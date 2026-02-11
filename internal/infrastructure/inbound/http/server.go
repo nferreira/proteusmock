@@ -167,13 +167,14 @@ func (s *Server) mockHandler(w http.ResponseWriter, r *http.Request) {
 	resp := result.Response
 
 	// Render dynamic body if template renderer is present.
+	queryParams := extractQueryParams(r)
 	var bodyBytes []byte
 	if resp.Renderer != nil {
 		renderCtx := match.RenderContext{
 			Method:      r.Method,
 			Path:        r.URL.Path,
 			Headers:     headers,
-			QueryParams: extractQueryParams(r),
+			QueryParams: queryParams,
 			PathParams:  extractPathParams(r),
 			Body:        body,
 			Now:         time.Now().UTC().Format(time.RFC3339),
@@ -187,6 +188,16 @@ func (s *Server) mockHandler(w http.ResponseWriter, r *http.Request) {
 		bodyBytes = rendered
 	} else {
 		bodyBytes = resp.Body
+	}
+
+	// Pagination post-processing: slice the rendered body and wrap in envelope.
+	if result.Pagination != nil {
+		paginated, paginateErr := services.Paginate(bodyBytes, result.Pagination, queryParams)
+		if paginateErr != nil {
+			s.logger.Error("pagination failed, returning unpaginated response", "error", paginateErr)
+		} else {
+			bodyBytes = paginated
+		}
 	}
 
 	for k, v := range resp.Headers {
