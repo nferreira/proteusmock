@@ -114,6 +114,19 @@ make help
 | `compose-down` | Stop docker compose services |
 | `clean` | Remove build artifacts |
 
+## CI
+
+GitHub Actions runs on every push to `main` and on pull requests:
+
+| Job | What it does |
+|-----|--------------|
+| **Lint** | `gofmt` check, `go vet`, `staticcheck` |
+| **Unit Tests** | `go test -race` with coverage report |
+| **Integration Tests** | `go test -tags=integration -race` |
+| **E2E Tests** | `go test -tags=e2e -race` |
+| **Build** | Static binary compilation, uploaded as artifact |
+| **Docker** | Builds image, verifies health endpoint (runs after all test jobs pass) |
+
 ## Dependencies
 
 Go 1.25+, [chi/v5](https://github.com/go-chi/chi), [expr](https://github.com/expr-lang/expr), [pongo2](https://github.com/flosch/pongo2), [fsnotify](https://github.com/fsnotify/fsnotify), [yaml.v3](https://gopkg.in/yaml.v3).
