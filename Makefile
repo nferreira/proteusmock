@@ -74,6 +74,31 @@ showcase: build ## Start server and run all showcase scenarios with pretty outpu
 		kill $$MOCK_PID 2>/dev/null; wait $$MOCK_PID 2>/dev/null; \
 	fi
 
+# ── Docker ───────────────────────────────────────────────────────────
+
+IMAGE_NAME  := sophialabs/proteusmock
+IMAGE_TAG   := latest
+
+.PHONY: docker-build docker-run docker-test docker-push compose-up compose-down
+
+docker-build: ## Build Docker production image
+	docker build -t $(IMAGE_NAME):$(IMAGE_TAG) .
+
+docker-run: ## Run Docker container (port 8080, bundled mocks)
+	docker run --rm -p 8080:8080 $(IMAGE_NAME):$(IMAGE_TAG)
+
+docker-test: ## Build Docker image running all tests
+	docker build --build-arg TEST_TAGS="integration,e2e" -t $(IMAGE_NAME):test .
+
+docker-push: ## Push image to registry
+	docker push $(IMAGE_NAME):$(IMAGE_TAG)
+
+compose-up: ## Start services with docker compose
+	docker compose up --build -d
+
+compose-down: ## Stop docker compose services
+	docker compose down
+
 # ── Housekeeping ─────────────────────────────────────────────────────
 
 .PHONY: clean help

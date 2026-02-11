@@ -37,6 +37,29 @@ bin/proteusmock --root ./mock --port 8080
 curl http://localhost:8080/api/v1/health
 ```
 
+## Docker
+
+```bash
+# Build the image (runs unit tests during build)
+make docker-build
+
+# Run with bundled mock scenarios
+make docker-run
+
+# Override scenarios with a volume mount
+docker run --rm -p 8080:8080 -v ./my-mocks:/mock:ro sophialabs/proteusmock:latest
+
+# Build running all tests (unit + integration + E2E)
+make docker-test
+
+# Skip tests during build
+docker build --build-arg RUN_TESTS=false -t sophialabs/proteusmock:latest .
+
+# Using docker compose
+make compose-up     # build + start in background
+make compose-down   # stop
+```
+
 ## Minimal scenario
 
 ```yaml
@@ -73,13 +96,22 @@ make help
 |---|---|
 | `build` | Build binary to `bin/proteusmock` |
 | `run` | Run server (`--root ./mock --port 8080`) |
-| `test` | Run all tests |
-| `test-race` | Run tests with race detector |
-| `test-cover` | Run tests with coverage report |
+| `test` | Run unit tests only (fast) |
+| `test-integration` | Run unit + integration tests |
+| `test-e2e` | Run E2E tests only |
+| `test-all` | Run all tests (unit + integration + E2E) with race detector |
+| `test-race` | Run unit tests with race detector |
+| `test-cover` | Run unit + integration tests with coverage report |
 | `fmt` | Format with gofmt |
 | `vet` | Run go vet |
 | `lint` | Run staticcheck |
 | `showcase` | Start server and run all demo scenarios |
+| `docker-build` | Build Docker production image |
+| `docker-run` | Run Docker container (port 8080, bundled mocks) |
+| `docker-test` | Build Docker image running all tests |
+| `docker-push` | Push image to registry |
+| `compose-up` | Start services with docker compose |
+| `compose-down` | Stop docker compose services |
 | `clean` | Remove build artifacts |
 
 ## Dependencies

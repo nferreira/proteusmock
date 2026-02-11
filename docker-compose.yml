@@ -1,0 +1,9 @@
+services:
+  proteusmock:
+    build: .
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./mock:/mock:ro
+    command: ["--root", "/mock", "--port", "8080", "--log-level", "info"]
+    restart: unless-stopped
