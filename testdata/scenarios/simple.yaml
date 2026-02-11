@@ -1,0 +1,11 @@
+id: simple-get
+name: Simple GET endpoint
+priority: 10
+when:
+  method: GET
+  path: /api/v1/health
+response:
+  status: 200
+  headers:
+    Content-Type: application/json
+  body: '{"status": "ok"}'

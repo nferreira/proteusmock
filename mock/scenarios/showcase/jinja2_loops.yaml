@@ -1,0 +1,33 @@
+# Jinja2 engine — for loops with seq(), forloop context, and toJSON().
+#
+# Try it:
+#   curl http://localhost:8080/api/v1/products
+
+id: showcase-jinja2-loops
+name: "Jinja2: loops and iteration"
+priority: 10
+when:
+  method: GET
+  path: /api/v1/products
+response:
+  status: 200
+  engine: jinja2
+  headers:
+    Content-Type: application/json
+  body: |
+    {
+      "products": [
+        {% for i in seq(1, 4) %}
+        {% if not forloop.First %},{% endif %}
+        {
+          "id": {{ i }},
+          "sku": "PROD-{{ i }}",
+          "name": "Product {{ i }}",
+          "price": {{ randomInt(10, 99) }}.99,
+          "in_stock": true
+        }
+        {% endfor %}
+      ],
+      "total": 4,
+      "generated_at": "{{ now }}"
+    }

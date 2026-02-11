@@ -1,0 +1,25 @@
+# Expr engine — ternary conditional based on header value.
+#
+# Try it:
+#   curl http://localhost:8080/api/v1/config -H "X-Env: production"
+#   curl http://localhost:8080/api/v1/config -H "X-Env: staging"
+#   curl http://localhost:8080/api/v1/config
+
+id: showcase-expr-conditional
+name: "Expr: conditional responses"
+priority: 10
+when:
+  method: GET
+  path: /api/v1/config
+response:
+  status: 200
+  engine: expr
+  headers:
+    Content-Type: application/json
+  body: |
+    {
+      "environment": "${header('X-Env') == '' ? 'development' : header('X-Env')}",
+      "debug": ${header('X-Env') == 'production' ? 'false' : 'true'},
+      "log_level": "${header('X-Env') == 'production' ? 'warn' : 'debug'}",
+      "cache_ttl": ${header('X-Env') == 'production' ? 3600 : 0}
+    }

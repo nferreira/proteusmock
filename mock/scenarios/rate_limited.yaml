@@ -1,0 +1,19 @@
+id: rate-limited-endpoint
+name: Rate Limited Endpoint
+priority: 10
+when:
+  method: GET
+  path: /api/v1/limited
+policy:
+  rate_limit:
+    rate: 5.0
+    burst: 10
+    key: "client-ip"
+  latency:
+    fixed_ms: 50
+    jitter_ms: 25
+response:
+  status: 200
+  headers:
+    Content-Type: application/json
+  body: '{"message": "rate limited endpoint response"}'

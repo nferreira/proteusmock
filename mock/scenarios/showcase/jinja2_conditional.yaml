@@ -1,0 +1,35 @@
+# Jinja2 engine — if/elif/else conditional logic.
+#
+# Try it:
+#   curl http://localhost:8080/api/v1/feature-flags -H "X-Tier: premium"
+#   curl http://localhost:8080/api/v1/feature-flags -H "X-Tier: basic"
+#   curl http://localhost:8080/api/v1/feature-flags
+
+id: showcase-jinja2-conditional
+name: "Jinja2: conditional logic"
+priority: 10
+when:
+  method: GET
+  path: /api/v1/feature-flags
+response:
+  status: 200
+  engine: jinja2
+  headers:
+    Content-Type: application/json
+  body: |
+    {
+      "tier": "{% if header("X-Tier") == "premium" %}premium{% elif header("X-Tier") == "basic" %}basic{% else %}free{% endif %}",
+      {% if header("X-Tier") == "premium" %}
+      "max_uploads": 1000,
+      "analytics": true,
+      "support": "priority"
+      {% elif header("X-Tier") == "basic" %}
+      "max_uploads": 100,
+      "analytics": true,
+      "support": "email"
+      {% else %}
+      "max_uploads": 10,
+      "analytics": false,
+      "support": "community"
+      {% endif %}
+    }

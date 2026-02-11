@@ -1,0 +1,25 @@
+# Expr engine — echoing request data and extracting fields with jsonPath().
+#
+# Try it:
+#   curl -X POST http://localhost:8080/api/v1/echo \
+#        -H "Content-Type: application/json" \
+#        -d '{"user": {"name": "Alice", "role": "admin"}}'
+
+id: showcase-expr-echo
+name: "Expr: echo body and jsonPath"
+priority: 10
+when:
+  method: POST
+  path: /api/v1/echo
+response:
+  status: 200
+  engine: expr
+  headers:
+    Content-Type: application/json
+  body: |
+    {
+      "extracted_name": "${jsonPath('$.user.name')}",
+      "extracted_role": "${jsonPath('$.user.role')}",
+      "echo_id": "${uuid()}",
+      "body_length": ${len(body())}
+    }

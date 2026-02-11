@@ -1,0 +1,10 @@
+{
+  "property": {
+    "id": 1,
+    "name": "Main Street Apartments",
+    "address": "123 Main St, Springfield, IL 62701",
+    "units": 24,
+    "manager": "Jane Doe",
+    "occupancy_rate": 0.92
+  }
+}

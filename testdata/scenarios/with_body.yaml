@@ -1,0 +1,18 @@
+id: post-properties
+name: Get properties by contract
+priority: 20
+when:
+  method: POST
+  path: /api/v1/get_properties
+  headers:
+    Content-Type: =application/json
+  body:
+    content_type: json
+    conditions:
+      - extractor: "$.method.params.contract_id"
+        matcher: "=100100"
+response:
+  status: 200
+  headers:
+    Content-Type: application/json
+  body: '{"properties": [{"id": 1, "name": "Main Street Apt"}]}'

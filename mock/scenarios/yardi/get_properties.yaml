@@ -1,0 +1,18 @@
+id: yardi-get-properties
+name: Yardi Get Properties
+priority: 20
+when:
+  method: POST
+  path: /api/v1/get_properties
+  headers:
+    Content-Type: =application/json
+  body:
+    content_type: json
+    conditions:
+      - extractor: "$.method.params.contract_id"
+        matcher: "=100100"
+response:
+  status: 200
+  headers:
+    Content-Type: application/json
+  body: !include ../../responses/properties_list.json

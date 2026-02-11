@@ -1,0 +1,22 @@
+# Expr engine — generating lists with seq() and toJSON().
+#
+# Try it:
+#   curl http://localhost:8080/api/v1/catalog
+
+id: showcase-expr-loops
+name: "Expr: list generation"
+priority: 10
+when:
+  method: GET
+  path: /api/v1/catalog
+response:
+  status: 200
+  engine: expr
+  headers:
+    Content-Type: application/json
+  body: |
+    {
+      "generated_at": "${now()}",
+      "items": ${toJSON(seq(1, 5))},
+      "total": 5
+    }

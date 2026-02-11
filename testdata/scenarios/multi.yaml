@@ -1,0 +1,21 @@
+- id: multi-one
+  name: First scenario in list
+  priority: 10
+  when:
+    method: GET
+    path: /api/v1/items
+  response:
+    status: 200
+    body: '{"items": []}'
+
+- id: multi-two
+  name: Second scenario in list
+  priority: 5
+  when:
+    method: POST
+    path: /api/v1/items
+    headers:
+      X-Api-Key: "secret-.*"
+  response:
+    status: 201
+    body: '{"created": true}'

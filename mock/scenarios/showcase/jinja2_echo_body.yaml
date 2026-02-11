@@ -1,0 +1,26 @@
+# Jinja2 engine — jsonPath extraction from request body.
+#
+# Try it:
+#   curl -X POST http://localhost:8080/api/v1/process \
+#        -H "Content-Type: application/json" \
+#        -d '{"order": {"id": "ORD-999", "amount": 42.50}}'
+
+id: showcase-jinja2-echo
+name: "Jinja2: jsonPath extraction"
+priority: 10
+when:
+  method: POST
+  path: /api/v1/process
+response:
+  status: 200
+  engine: jinja2
+  headers:
+    Content-Type: application/json
+  body: |
+    {
+      "status": "processed",
+      "order_id": "{{ jsonPath("$.order.id") }}",
+      "amount": "{{ jsonPath("$.order.amount") }}",
+      "confirmation": "{{ uuid() }}",
+      "processed_at": "{{ now }}"
+    }

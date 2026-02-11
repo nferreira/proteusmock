@@ -1,0 +1,27 @@
+# Expr engine — basic interpolation, path params, query params, headers, timestamps, UUIDs.
+#
+# Try it:
+#   curl "http://localhost:8080/api/v1/users/42?fields=name,email" \
+#        -H "Authorization: Bearer tok_abc"
+
+id: showcase-expr-basics
+name: "Expr: basic interpolation"
+priority: 10
+when:
+  method: GET
+  path: /api/v1/users/{id}
+response:
+  status: 200
+  engine: expr
+  headers:
+    Content-Type: application/json
+  body: |
+    {
+      "id": "${pathParam('id')}",
+      "fields": "${queryParam('fields')}",
+      "auth": "${header('Authorization')}",
+      "request_id": "${uuid()}",
+      "served_at": "${now()}",
+      "served_date": "${nowFormat('2006-01-02')}",
+      "lucky_number": ${randomInt(1, 100)}
+    }

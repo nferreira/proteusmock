@@ -1,0 +1,49 @@
+- id: list-items
+  name: List Items
+  priority: 10
+  when:
+    method: GET
+    path: /api/v1/items
+  response:
+    status: 200
+    headers:
+      Content-Type: application/json
+    body: '{"items": [{"id": 1, "name": "Widget"}, {"id": 2, "name": "Gadget"}]}'
+
+- id: create-item
+  name: Create Item
+  priority: 10
+  when:
+    method: POST
+    path: /api/v1/items
+    headers:
+      Content-Type: =application/json
+  response:
+    status: 201
+    headers:
+      Content-Type: application/json
+    body: '{"id": 3, "name": "New Item", "created": true}'
+
+- id: create-item-with-header
+  name: Create Item
+  priority: 10
+  when:
+    method: POST
+    path: /api/v1/items
+    headers:
+      Content-Type: =application/json
+      X-Api-Key: "secret-.*"
+  response:
+    status: 201
+    headers:
+      Content-Type: application/json
+    body: '{"id": 4, "name": "New Item", "created": true}'
+
+- id: delete-item
+  name: Delete Item
+  priority: 10
+  when:
+    method: DELETE
+    path: /api/v1/items/1
+  response:
+    status: 204

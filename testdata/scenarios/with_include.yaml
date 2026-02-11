@@ -1,0 +1,11 @@
+id: include-test
+name: Test include resolution
+priority: 10
+when:
+  method: GET
+  path: /api/v1/health-check
+response:
+  status: 200
+  headers:
+    Content-Type: application/json
+  body: !include ../responses/health.json

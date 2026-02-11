@@ -1,0 +1,13 @@
+id: yardi-unauthorized
+name: Yardi Unauthorized Request
+priority: 5
+when:
+  method: POST
+  path: /api/v1/get_properties
+  headers:
+    Content-Type: =application/json
+response:
+  status: 401
+  headers:
+    Content-Type: application/json
+  body: !include ../../responses/error_unauthorized.json

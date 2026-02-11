@@ -1,0 +1,30 @@
+# Jinja2 engine — basic variable access, context variables, helper functions.
+#
+# Try it:
+#   curl -X POST "http://localhost:8080/api/v1/submit?source=web" \
+#        -H "X-Request-Id: req-001" \
+#        -H "User-Agent: TestBot/2.0"
+
+id: showcase-jinja2-basics
+name: "Jinja2: basic interpolation"
+priority: 10
+when:
+  method: POST
+  path: /api/v1/submit
+response:
+  status: 201
+  engine: jinja2
+  headers:
+    Content-Type: application/json
+  body: |
+    {
+      "status": "accepted",
+      "method": "{{ method }}",
+      "path": "{{ path }}",
+      "source": "{{ queryParam("source") }}",
+      "client_request_id": "{{ header("X-Request-Id") }}",
+      "user_agent": "{{ header("User-Agent") }}",
+      "server_id": "{{ uuid() }}",
+      "timestamp": "{{ now }}",
+      "formatted_date": "{{ nowFormat("2006-01-02") }}"
+    }
