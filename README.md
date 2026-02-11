@@ -15,6 +15,7 @@ In Greek mythology, [Proteus](https://en.wikipedia.org/wiki/Proteus) was a sea g
 - **Declarative YAML scenarios** with method, path, header, and body matching
 - **Body matching** via JSONPath / XPath with boolean combinators (`all`, `any`, `not`)
 - **Dynamic responses** using Expr (`${ }`) or Jinja2 (`{{ }}`) template engines
+- **Automatic pagination** -- page+size or offset+limit with customizable params and envelope
 - **Hot reload** -- edit YAML files and the server picks up changes automatically
 - **Rate limiting** per scenario with token-bucket algorithm
 - **Latency simulation** with fixed delay + jitter

@@ -61,6 +61,18 @@ No formal ADR files found in repo. Decisions below are derived from code structu
 | **Admin API over file-based logs** | `/__admin/trace` and `/__admin/scenarios` endpoints allow live inspection without log parsing. |
 | **`slog.Logger` wrapper** | Standard library structured logging. Wrapped behind `ports.Logger` interface for testability. |
 
+## Pagination
+
+| Decision | Rationale |
+|---|---|
+| **Post-rendering pagination** | Body is rendered first (including templates), then parsed, sliced, and enveloped. Keeps template logic unaware of pagination. Simple pipeline: render -> paginate -> respond. |
+| **Two styles: page_size and offset_limit** | Covers the two most common API pagination patterns. `page_size` (1-based page number) is the default. `offset_limit` (0-based offset) for APIs that prefer cursor-less offset pagination. |
+| **Customizable query param names** | `page_param`, `size_param`, `offset_param`, `limit_param` allow matching any API convention (e.g. `?page_size=` instead of `?size=`). Defaults (`page`, `size`, `offset`, `limit`) work out of the box. |
+| **Customizable envelope field names** | Real APIs use different field names (`results` vs `data`, `count` vs `total_items`). All envelope fields are configurable with sensible defaults. |
+| **`data_path` JSONPath extraction** | Allows paginating a nested array (e.g. `$.users`) rather than requiring the root to be an array. Default `$` works for root-level arrays. |
+| **Graceful degradation** | Pagination errors (invalid JSON, missing array, bad data_path) log a warning and return the original unpaginated body. Avoids breaking responses when pagination config doesn't match the body structure. |
+| **Pure function design** | `services.Paginate(body, config, queryParams) -> body` is a pure function with no side effects. Easy to test, no state. |
+
 ## Non-Goals / Trade-offs
 
 | Non-goal | Reasoning |

@@ -69,7 +69,7 @@ Key responsibilities:
 | `internal/domain/match` | Matching engine | `Evaluator`, `Predicate`, `CompiledScenario`, `BodyRenderer`, `RenderContext` | Zero deps |
 | `internal/domain/trace` | Request tracing | `RingBuffer`, `Entry`, `CandidateResult` | Thread-safe ring buffer |
 | `internal/infrastructure/ports` | Port interfaces | `Clock`, `Logger`, `RateLimiter` | Contracts for adapters |
-| `internal/infrastructure/services` | Compilation & indexing | `Compiler`, `ScenarioIndex`, `InferContentType` | Compiles YAML into predicates |
+| `internal/infrastructure/services` | Compilation & indexing | `Compiler`, `ScenarioIndex`, `Paginate`, `InferContentType` | Compiles YAML into predicates, paginates responses |
 | `internal/infrastructure/usecases` | Application logic | `LoadScenariosUseCase`, `HandleRequestUseCase` | Orchestrates domain + infra |
 | `internal/infrastructure/inbound/http` | HTTP adapter | `Server` | chi router, admin & mock handlers |
 | `internal/infrastructure/outbound/filesystem` | YAML adapter | `YAMLRepository`, `Watcher`, `IncludeResolver` | Implements `scenario.Repository` |
@@ -112,11 +112,15 @@ HandleRequestUseCase.Execute:
     4. Check rate limit (if policy set)
     5. Apply latency (if policy set, respects ctx)
     6. Infer content type
-    7. Return response
+    7. Return response (with pagination config if set)
     |
     v
 mockHandler (cont.):
     - If Renderer != nil: render dynamic body
+    - If Pagination != nil: paginate rendered body
+      - Parse JSON, extract array at data_path
+      - Slice array by query params (page/size or offset/limit)
+      - Wrap in pagination envelope
     - Write status, headers, body
 ```
 

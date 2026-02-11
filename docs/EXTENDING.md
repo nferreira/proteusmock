@@ -167,6 +167,7 @@ To add a new port:
 | **Predicate closures** | `match.Predicate = func(string) bool` | Composable matching logic |
 | **Boolean combinators** | `And()`, `Or()`, `Not()` on predicates | Recursive body matching |
 | **Atomic pointer swap** | `atomic.Pointer[chi.Mux]` in `Server` | Zero-downtime hot reload |
+| **Post-render pagination** | `services.Paginate()` | Slice + envelope after body rendering |
 | **Ring buffer** | `trace.RingBuffer` | Bounded trace storage |
 | **Token bucket** | `ratelimit.TokenBucketStore` | Per-key rate limiting |
 | **DI container** | `wiring.Container` | Controlled construction order |
