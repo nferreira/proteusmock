@@ -112,17 +112,17 @@ func findClosingBrace(s string) int {
 
 // exprEnv defines the environment available to Expr expressions.
 type exprEnv struct {
-	PathParam  func(string) string `expr:"pathParam"`
-	QueryParam func(string) string `expr:"queryParam"`
-	Header     func(string) string `expr:"header"`
-	Body       func() string       `expr:"body"`
-	Now        func() string       `expr:"now"`
-	NowFormat  func(string) string `expr:"nowFormat"`
-	UUID       func() string       `expr:"uuid"`
-	RandomInt  func(int, int) int  `expr:"randomInt"`
+	PathParam  func(string) string  `expr:"pathParam"`
+	QueryParam func(string) string  `expr:"queryParam"`
+	Header     func(string) string  `expr:"header"`
+	Body       func() string        `expr:"body"`
+	Now        func() string        `expr:"now"`
+	NowFormat  func(string) string  `expr:"nowFormat"`
+	UUID       func() string        `expr:"uuid"`
+	RandomInt  func(int, int) int   `expr:"randomInt"`
 	Seq        func(int, int) []int `expr:"seq"`
-	ToJSON     func(any) string    `expr:"toJSON"`
-	JsonPath   func(string) string `expr:"jsonPath"`
+	ToJSON     func(any) string     `expr:"toJSON"`
+	JsonPath   func(string) string  `expr:"jsonPath"`
 }
 
 type exprRenderer struct {
