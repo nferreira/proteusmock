@@ -1,6 +1,6 @@
 # Design Decisions
 
-No formal ADR files found in repo. Decisions below are derived from code structure, comments, and commit history.
+Formal ADR files are available in [`docs/adr/`](adr/README.md). The summary below is derived from those records.
 
 ## Architecture
 

@@ -88,4 +88,4 @@ Go 1.25+, [chi/v5](https://github.com/go-chi/chi), [expr](https://github.com/exp
 
 ## License
 
-See [LICENSE](LICENSE) if present.
+See [LICENSE](LICENSE.md) if present.
