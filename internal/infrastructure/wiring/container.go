@@ -32,6 +32,8 @@ type Container struct {
 	logger           ports.Logger
 	server           *inboundhttp.Server
 	loadUC           *usecases.LoadScenariosUseCase
+	saveUC           *usecases.SaveScenarioUseCase
+	deleteUC         *usecases.DeleteScenarioUseCase
 	rateLimiterStore *ratelimit.TokenBucketStore
 	traceBuf         *trace.RingBuffer
 	closeOnce        sync.Once
@@ -68,13 +70,18 @@ func New(p Params) (*Container, error) {
 		loadUC.SetDefaultEngine(p.DefaultEngine)
 	}
 	handleReqUC := usecases.NewHandleRequestUseCase(evaluator, clk, rateLimiterStore, p.Logger, traceBuf)
+	saveUC := usecases.NewSaveScenarioUseCase(repo, p.Logger)
+	deleteUC := usecases.NewDeleteScenarioUseCase(repo, p.Logger)
 
 	server := inboundhttp.NewServer(handleReqUC, loadUC, traceBuf, p.Logger)
+	server.SetCRUDDeps(saveUC, deleteUC, repo, p.RootDir)
 
 	return &Container{
 		logger:           p.Logger,
 		server:           server,
 		loadUC:           loadUC,
+		saveUC:           saveUC,
+		deleteUC:         deleteUC,
 		rateLimiterStore: rateLimiterStore,
 		traceBuf:         traceBuf,
 	}, nil

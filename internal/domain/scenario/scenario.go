@@ -8,6 +8,12 @@ type Scenario struct {
 	When     WhenClause
 	Response Response
 	Policy   *Policy
+
+	// SourceFile is the absolute path to the YAML file this scenario was loaded from.
+	SourceFile string
+	// SourceIndex is the index within a multi-scenario YAML file (0-based).
+	// For single-scenario files, this is -1.
+	SourceIndex int
 }
 
 // WhenClause defines the conditions for matching an incoming request.

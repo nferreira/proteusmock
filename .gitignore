@@ -4,6 +4,10 @@ coverage.out
 *.test
 *.prof
 
+# Dashboard SPA
+ui/dashboard/node_modules/
+ui/dashboard/dist/
+
 # Created by https://www.toptal.com/developers/gitignore/api/go,git,intellij+all
 # Edit at https://www.toptal.com/developers/gitignore?templates=go,git,intellij+all
 

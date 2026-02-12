@@ -20,6 +20,7 @@ In Greek mythology, [Proteus](https://en.wikipedia.org/wiki/Proteus) was a sea g
 - **Rate limiting** per scenario with token-bucket algorithm
 - **Latency simulation** with fixed delay + jitter
 - **Admin API** for inspecting loaded scenarios and request traces
+- **Web dashboard** -- built-in SPA at `/__ui/` for browsing, editing, and creating scenarios
 - **`!include`** directive for reusable YAML fragments and response files
 
 ## Quickstart

@@ -5,13 +5,21 @@ CMD    := ./cmd/proteusmock
 
 # ── Build & Run ──────────────────────────────────────────────────────
 
-.PHONY: build run
+.PHONY: build build-dashboard run dev-dashboard
 
-build: ## Build the binary to bin/proteusmock
+build-dashboard: ## Build the React dashboard SPA
+	cd ui/dashboard && npm ci && npm run build
+
+build: build-dashboard ## Build the binary to bin/proteusmock (includes dashboard)
 	go build -o bin/$(BINARY) $(CMD)
 
 run: ## Run the server (--root ./mock --port 8080)
 	go run $(CMD) --root ./mock --port 8080
+
+dev-dashboard: ## Run Go server + Vite dev server for dashboard development
+	@echo "Start Vite dev server: cd ui/dashboard && npm run dev"
+	@echo "Start Go server:       go run $(CMD) --root ./mock --port 8080"
+	@echo "Dashboard at: http://localhost:5173/__ui/"
 
 # ── Testing ──────────────────────────────────────────────────────────
 
@@ -104,7 +112,7 @@ compose-down: ## Stop docker compose services
 .PHONY: clean help
 
 clean: ## Remove build artifacts and coverage files
-	rm -rf bin/ coverage.out
+	rm -rf bin/ coverage.out ui/dashboard/dist/ ui/dashboard/node_modules/
 
 help: ## Show this help
 	@printf "\nUsage: make \033[36m<target>\033[0m\n"

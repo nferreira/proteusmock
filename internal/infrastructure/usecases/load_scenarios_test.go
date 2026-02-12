@@ -20,6 +20,27 @@ func (r *mockRepo) LoadAll(_ context.Context) ([]*scenario.Scenario, error) {
 	return r.scenarios, r.err
 }
 
+func (r *mockRepo) LoadByID(_ context.Context, id string) (*scenario.Scenario, error) {
+	for _, s := range r.scenarios {
+		if s.ID == id {
+			return s, nil
+		}
+	}
+	return nil, scenario.ErrNotFound
+}
+
+func (r *mockRepo) SaveScenario(_ context.Context, _ *scenario.Scenario, _ []byte) error {
+	return nil
+}
+
+func (r *mockRepo) DeleteScenario(_ context.Context, _ string, _ int) error {
+	return nil
+}
+
+func (r *mockRepo) ReadSourceYAML(_ context.Context, _ *scenario.Scenario) ([]byte, error) {
+	return nil, nil
+}
+
 func newTestCompiler(t *testing.T) *services.Compiler {
 	t.Helper()
 	c, err := services.NewCompiler(t.TempDir(), nil)

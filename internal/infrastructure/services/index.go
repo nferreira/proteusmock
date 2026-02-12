@@ -67,7 +67,7 @@ func (idx *ScenarioIndex) Paths() []string {
 	return idx.paths
 }
 
-// All returns all compiled scenarios across all keys.
+// All returns all compiled scenarios across all keys, sorted by priority desc then ID asc.
 func (idx *ScenarioIndex) All() []*match.CompiledScenario {
 	size := 0
 	for _, candidates := range idx.entries {
@@ -77,7 +77,25 @@ func (idx *ScenarioIndex) All() []*match.CompiledScenario {
 	for _, candidates := range idx.entries {
 		all = append(all, candidates...)
 	}
+	sort.SliceStable(all, func(i, j int) bool {
+		if all[i].Priority != all[j].Priority {
+			return all[i].Priority > all[j].Priority
+		}
+		return all[i].ID < all[j].ID
+	})
 	return all
+}
+
+// ByID returns the compiled scenario with the given ID, or nil if not found.
+func (idx *ScenarioIndex) ByID(id string) (*match.CompiledScenario, bool) {
+	for _, candidates := range idx.entries {
+		for _, cs := range candidates {
+			if cs.ID == id {
+				return cs, true
+			}
+		}
+	}
+	return nil, false
 }
 
 // Keys returns all index keys.

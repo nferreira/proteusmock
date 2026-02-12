@@ -1,3 +1,12 @@
+# ── Stage 0: dashboard — build React SPA ────────────────────────────
+FROM node:22-bookworm-slim AS dashboard
+
+WORKDIR /dashboard
+COPY ui/dashboard/package.json ui/dashboard/package-lock.json ./
+RUN npm ci
+COPY ui/dashboard/ .
+RUN npm run build
+
 # ── Stage 1: deps — cache Go modules ────────────────────────────────
 FROM golang:1.25-bookworm AS deps
 
@@ -10,6 +19,7 @@ RUN go mod download && go mod verify
 FROM deps AS build
 
 COPY . .
+COPY --from=dashboard /dashboard/dist ui/dashboard/dist/
 
 ARG RUN_TESTS=true
 ARG TEST_TAGS=""

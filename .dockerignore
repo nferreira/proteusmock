@@ -26,3 +26,5 @@ scripts/
 vendor/
 go.work
 go.work.sum
+ui/dashboard/node_modules/
+ui/dashboard/dist/
