@@ -13,50 +13,38 @@ Key responsibilities:
 
 ## Component Diagram
 
-```
-                        +-----------------------+
-                        |   cmd/proteusmock     |
-                        |   (CLI entrypoint)    |
-                        +----------+------------+
-                                   |
-                        +----------v------------+
-                        |   internal/app        |
-                        |   Config + App        |
-                        |   (lifecycle mgr)     |
-                        +----------+------------+
-                                   |
-                        +----------v------------+
-                        |  infrastructure/      |
-                        |  wiring/Container     |
-                        |  (DI composition)     |
-                        +----------+------------+
-                                   |
-              +--------------------+--------------------+
-              |                    |                    |
-   +----------v--------+  +-------v--------+  +-------v---------+
-   | inbound/http      |  | usecases/      |  | outbound/       |
-   | Server + Router   |  | LoadScenarios  |  | filesystem/     |
-   | Admin API         |  | HandleRequest  |  |   YAMLRepo      |
-   | Mock handler      |  +-------+--------+  |   Watcher       |
-   +-------------------+          |            |   IncludeResolver|
-                                  |            | template/       |
-                        +---------+--------+   |   ExprCompiler  |
-                        | services/        |   |   Jinja2Compiler|
-                        |   Compiler       |   |   Registry      |
-                        |   ScenarioIndex  |   | clock/          |
-                        |   ContentType    |   | logging/        |
-                        +------------------+   | ratelimit/      |
-                                               +-----------------+
-                                  |
-              +-------------------+-------------------+
-              |                   |                   |
-   +----------v------+  +--------v-------+  +--------v-------+
-   | domain/scenario  |  | domain/match   |  | domain/trace   |
-   | Scenario, Repo   |  | Evaluator      |  | RingBuffer     |
-   | WhenClause       |  | Predicate      |  | Entry          |
-   | BodyClause       |  | CompiledScen.  |  +----------------+
-   | Policy           |  | BodyRenderer   |
-   +-----------------+   +----------------+
+```mermaid
+graph TD
+    CLI["cmd/proteusmock<br/><i>CLI entrypoint</i>"]
+    APP["internal/app<br/>Config + App<br/><i>lifecycle manager</i>"]
+    WIRING["infrastructure/wiring<br/>Container<br/><i>DI composition</i>"]
+
+    CLI --> APP --> WIRING
+
+    WIRING --> HTTP["inbound/http<br/>Server + Router<br/>Admin API<br/>Mock handler"]
+    WIRING --> UC["usecases/<br/>LoadScenarios<br/>HandleRequest"]
+    WIRING --> OUT["outbound/"]
+
+    UC --> SVC["services/<br/>Compiler<br/>ScenarioIndex<br/>ContentType"]
+
+    OUT --- FS["filesystem/<br/>YAMLRepo · Watcher<br/>IncludeResolver"]
+    OUT --- TPL["template/<br/>ExprCompiler<br/>Jinja2Compiler · Registry"]
+    OUT --- ADAPTERS["clock/ · logging/<br/>ratelimit/"]
+
+    SVC --> SCENARIO["domain/scenario<br/>Scenario · Repository<br/>WhenClause · BodyClause<br/>Policy"]
+    SVC --> MATCH["domain/match<br/>Evaluator · Predicate<br/>CompiledScenario<br/>BodyRenderer"]
+    SVC --> TRACE["domain/trace<br/>RingBuffer · Entry"]
+
+    style CLI fill:#4a9eff,color:#fff
+    style APP fill:#4a9eff,color:#fff
+    style WIRING fill:#6c7ae0,color:#fff
+    style HTTP fill:#2ecc71,color:#fff
+    style UC fill:#2ecc71,color:#fff
+    style OUT fill:#2ecc71,color:#fff
+    style SVC fill:#e67e22,color:#fff
+    style SCENARIO fill:#e74c3c,color:#fff
+    style MATCH fill:#e74c3c,color:#fff
+    style TRACE fill:#e74c3c,color:#fff
 ```
 
 ## Package Map
@@ -82,75 +70,98 @@ Key responsibilities:
 
 ## Request Flow
 
-```
-HTTP Request
-    |
-    v
-Server.ServeHTTP
-    |
-    +-- Load current router (atomic.Pointer)
-    |
-    v
-chi.Mux routes to mockHandler or admin handler
-    |
-    v
-mockHandler:
-    1. Read body (max 10 MB)
-    2. Build IncomingRequest{Method, Path, Headers, Body}
-    3. Resolve route pattern via chi.RouteContext (e.g. /users/{id})
-    4. Lookup candidates: index["POST:/api/v1/echo/{id}"]
-    5. Execute HandleRequestUseCase
-    |
-    v
-HandleRequestUseCase.Execute:
-    1. Evaluator.Evaluate(request, candidates)
-       - For each candidate (sorted by priority):
-         - Check each FieldPredicate against request fields
-         - First full match wins
-    2. Record trace entry
-    3. If no match -> return {Matched: false}
-    4. Check rate limit (if policy set)
-    5. Apply latency (if policy set, respects ctx)
-    6. Infer content type
-    7. Return response (with pagination config if set)
-    |
-    v
-mockHandler (cont.):
-    - If Renderer != nil: render dynamic body
-    - If Pagination != nil: paginate rendered body
-      - Parse JSON, extract array at data_path
-      - Slice array by query params (page/size or offset/limit)
-      - Wrap in pagination envelope
-    - Write status, headers, body
+```mermaid
+flowchart TD
+    REQ([HTTP Request])
+    SERVE["Server.ServeHTTP<br/>Load router via atomic.Pointer"]
+    ROUTE{"chi.Mux<br/>route dispatch"}
+    ADMIN["Admin handler"]
+    MOCK["mockHandler"]
+
+    REQ --> SERVE --> ROUTE
+    ROUTE -->|/__admin/*| ADMIN
+    ROUTE -->|mock route| MOCK
+
+    subgraph mockHandler
+        READ["1. Read body ≤ 10 MB"]
+        BUILD["2. Build IncomingRequest<br/>{Method, Path, Headers, Body}"]
+        PATTERN["3. Resolve route pattern<br/>via chi.RouteContext"]
+        LOOKUP["4. Lookup candidates<br/>index·METHOD:path-pattern·"]
+        EXEC["5. Execute HandleRequestUseCase"]
+        READ --> BUILD --> PATTERN --> LOOKUP --> EXEC
+    end
+
+    subgraph HandleRequestUseCase.Execute
+        EVAL["Evaluator.Evaluate<br/>candidates sorted by priority<br/>first full match wins"]
+        TRACE_ENTRY["Record trace entry"]
+        MATCH_CHECK{Match<br/>found?}
+        NO_MATCH["Return Matched: false"]
+        RATE["Check rate limit"]
+        LATENCY["Apply latency<br/>context-aware"]
+        CONTENT["Infer content type"]
+        RESULT["Return response<br/>+ pagination config"]
+
+        EVAL --> TRACE_ENTRY --> MATCH_CHECK
+        MATCH_CHECK -->|No| NO_MATCH
+        MATCH_CHECK -->|Yes| RATE --> LATENCY --> CONTENT --> RESULT
+    end
+
+    EXEC --> EVAL
+
+    subgraph Response Pipeline
+        RENDER_CHECK{Renderer<br/>present?}
+        RENDER["Render dynamic body"]
+        PAGE_CHECK{Pagination<br/>present?}
+        PAGE["Paginate: parse JSON →<br/>extract array at data_path →<br/>slice by query params →<br/>wrap in envelope"]
+        WRITE["Write status + headers + body"]
+
+        RENDER_CHECK -->|Yes| RENDER --> PAGE_CHECK
+        RENDER_CHECK -->|No| PAGE_CHECK
+        PAGE_CHECK -->|Yes| PAGE --> WRITE
+        PAGE_CHECK -->|No| WRITE
+    end
+
+    RESULT --> RENDER_CHECK
+    NO_MATCH --> WRITE_404["Write 404 response"]
 ```
 
 ## Scenario Load Flow
 
-```
-App.Run / Watcher trigger
-    |
-    v
-LoadScenariosUseCase.Execute:
-    1. repo.LoadAll()
-       - Walk YAML files
-       - Parse yaml.Node tree
-       - Resolve !include tags (recursive, max depth 10)
-       - Decode into yamlScenario -> scenario.Scenario
-    2. Apply default engine (if configured)
-    3. Validate unique IDs
-    4. For each scenario:
-       - compiler.CompileScenario()
-         - Compile when clause -> FieldPredicates
-         - Compile body clause -> nested Predicate closures
-         - Resolve response body (inline / file / template)
-         - Compile template via Registry if engine set
-       - Add to ScenarioIndex
-    5. index.Build() -- sort by priority desc
-    |
-    v
-Server.Rebuild(index):
-    - Build new chi.Mux with all routes
-    - Atomic swap of router + index pointers
+```mermaid
+flowchart TD
+    TRIGGER(["App.Run / Watcher trigger"])
+
+    subgraph LoadScenariosUseCase.Execute
+        LOAD["repo.LoadAll()"]
+        WALK["Walk YAML files"]
+        PARSE["Parse yaml.Node tree"]
+        INCLUDE["Resolve !include tags<br/>recursive, max depth 10"]
+        DECODE["Decode → scenario.Scenario"]
+        ENGINE["Apply default engine<br/>if configured"]
+        VALIDATE["Validate unique IDs"]
+        COMPILE["For each scenario:<br/>compiler.CompileScenario()"]
+        WHEN_C["Compile when clause<br/>→ FieldPredicates"]
+        BODY_C["Compile body clause<br/>→ nested Predicate closures"]
+        RESP_C["Resolve response body<br/>inline / file / template"]
+        TPL_C["Compile template<br/>via Registry if engine set"]
+        INDEX_ADD["Add to ScenarioIndex"]
+        BUILD["index.Build()<br/>sort by priority desc"]
+
+        LOAD --> WALK --> PARSE --> INCLUDE --> DECODE
+        DECODE --> ENGINE --> VALIDATE --> COMPILE
+        COMPILE --> WHEN_C & BODY_C & RESP_C
+        RESP_C --> TPL_C
+        WHEN_C & BODY_C & TPL_C --> INDEX_ADD --> BUILD
+    end
+
+    subgraph Server.Rebuild
+        NEW_MUX["Build new chi.Mux<br/>with all routes"]
+        SWAP["Atomic swap<br/>router + index pointers"]
+        NEW_MUX --> SWAP
+    end
+
+    TRIGGER --> LOAD
+    BUILD --> NEW_MUX
 ```
 
 ## Key Abstractions (Ports & Adapters)

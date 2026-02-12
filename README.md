@@ -82,6 +82,7 @@ response:
 | Document | Contents |
 |---|---|
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | System design, package map, data flows |
+| [docs/CONFIGURATION.md](docs/CONFIGURATION.md) | Tutorial: scenarios, matching, templates, pagination |
 | [docs/USAGE.md](docs/USAGE.md) | CLI flags, API reference, scenario format, examples |
 | [docs/EXTENDING.md](docs/EXTENDING.md) | Adding endpoints, engines, storage backends, testing |
 | [docs/DECISIONS.md](docs/DECISIONS.md) | Key design decisions and trade-offs |
