@@ -376,3 +376,48 @@ func TestJinja2Compiler_JsonPathInvalidJSON(t *testing.T) {
 		t.Errorf("expected '[]', got %q", result)
 	}
 }
+
+func TestJinja2Compiler_FakerPerson(t *testing.T) {
+	c := &Jinja2Compiler{}
+	renderer, err := c.Compile("test", `{{ faker.Person.Name }}`)
+	if err != nil {
+		t.Fatalf("Compile failed: %v", err)
+	}
+	result, err := renderer.Render(match.RenderContext{})
+	if err != nil {
+		t.Fatalf("Render failed: %v", err)
+	}
+	if len(string(result)) == 0 {
+		t.Error("expected non-empty faker person name")
+	}
+}
+
+func TestJinja2Compiler_FakerSeeded(t *testing.T) {
+	c := &Jinja2Compiler{}
+	renderer, err := c.Compile("test", `{{ faker.Person.Name }}`)
+	if err != nil {
+		t.Fatalf("Compile failed: %v", err)
+	}
+	seed := int64(42)
+	r1, _ := renderer.Render(match.RenderContext{FakerSeed: &seed})
+	r2, _ := renderer.Render(match.RenderContext{FakerSeed: &seed})
+	if string(r1) != string(r2) {
+		t.Errorf("seeded faker should be deterministic: %q != %q", r1, r2)
+	}
+}
+
+func TestJinja2Compiler_FakerEmail(t *testing.T) {
+	c := &Jinja2Compiler{}
+	renderer, err := c.Compile("test", `{{ faker.Internet.Email }}`)
+	if err != nil {
+		t.Fatalf("Compile failed: %v", err)
+	}
+	result, err := renderer.Render(match.RenderContext{})
+	if err != nil {
+		t.Fatalf("Render failed: %v", err)
+	}
+	s := string(result)
+	if !strings.Contains(s, "@") {
+		t.Errorf("expected email with @, got %q", s)
+	}
+}

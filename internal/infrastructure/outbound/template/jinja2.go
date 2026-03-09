@@ -7,6 +7,7 @@ import (
 	"github.com/flosch/pongo2/v6"
 
 	"github.com/sophialabs/proteusmock/internal/domain/match"
+	fakerpkg "github.com/sophialabs/proteusmock/internal/infrastructure/outbound/faker"
 )
 
 // Jinja2Compiler compiles body templates using Pongo2 (Django/Jinja2-style).
@@ -55,6 +56,7 @@ func (r *jinja2Renderer) Render(ctx match.RenderContext) ([]byte, error) {
 		"jsonPath": func(expression string) string {
 			return extractJSONPath(ctx.Body, expression)
 		},
+		"faker": fakerpkg.NewFakerContext(ctx.FakerSeed),
 		"nowFormat": func(layout string) string {
 			t, err := time.Parse(time.RFC3339, ctx.Now)
 			if err != nil {
