@@ -1,0 +1,68 @@
+- id: showcase-faker-random
+  name: "Faker: random user data"
+  priority: 1
+  when:
+    method: GET
+    path: /api/v1/fake/user
+  response:
+    status: 200
+    engine: expr
+    headers:
+      Content-Type: application/json
+    body: |
+      {
+        "name": "${faker.Person.Name()}",
+        "email": "${faker.Internet.Email()}",
+        "phone": "${faker.Phone.Number()}",
+        "address": {
+          "street": "${faker.Address.StreetAddress()}",
+          "city": "${faker.Address.City()}",
+          "state": "${faker.Address.State()}",
+          "zip": "${faker.Address.PostCode()}",
+          "country": "${faker.Address.Country()}"
+        },
+        "company": "${faker.Company.Name()}",
+        "job_title": "${faker.Company.JobTitle()}"
+      }
+
+- id: showcase-faker-seeded
+  name: "Faker: deterministic user data"
+  priority: 1
+  when:
+    method: GET
+    path: /api/v1/fake/user/deterministic
+  response:
+    status: 200
+    engine: expr
+    faker_seed: 42
+    headers:
+      Content-Type: application/json
+    body: |
+      {
+        "name": "${faker.Person.Name()}",
+        "email": "${faker.Internet.Email()}",
+        "ipv4": "${faker.Internet.Ipv4()}"
+      }
+
+- id: showcase-faker-jinja2
+  name: "Faker: Jinja2 user list"
+  priority: 1
+  when:
+    method: GET
+    path: /api/v1/fake/products
+  response:
+    status: 200
+    engine: jinja2
+    headers:
+      Content-Type: application/json
+    body: |
+      [
+        {% for i in seq(1, 3) %}
+        {
+          "id": {{ i }},
+          "name": "{{ faker.App.Name }}",
+          "color": "{{ faker.Color.ColorName }}",
+          "price": "{{ faker.Currency.Code }}"
+        }{% if not forloop.Last %},{% endif %}
+        {% endfor %}
+      ]
