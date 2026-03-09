@@ -276,6 +276,7 @@ func (s *Server) mockHandler(w http.ResponseWriter, r *http.Request) {
 			PathParams:  extractPathParams(r),
 			Body:        body,
 			Now:         time.Now().UTC().Format(time.RFC3339),
+			FakerSeed:   resp.FakerSeed,
 		}
 		rendered, renderErr := resp.Renderer.Render(renderCtx)
 		if renderErr != nil {
