@@ -8,6 +8,7 @@ import (
 	"github.com/expr-lang/expr/vm"
 
 	"github.com/sophialabs/proteusmock/internal/domain/match"
+	fakerpkg "github.com/sophialabs/proteusmock/internal/infrastructure/outbound/faker"
 )
 
 // ExprCompiler compiles body templates using the Expr language with ${ } interpolation.
@@ -123,6 +124,7 @@ type exprEnv struct {
 	Seq        func(int, int) []int `expr:"seq"`
 	ToJSON     func(any) string     `expr:"toJSON"`
 	JsonPath   func(string) string  `expr:"jsonPath"`
+	Faker      fakerpkg.FakerContext `expr:"faker"`
 }
 
 type exprRenderer struct {

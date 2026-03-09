@@ -10,6 +10,7 @@ import (
 	"github.com/PaesslerAG/jsonpath"
 
 	"github.com/sophialabs/proteusmock/internal/domain/match"
+	fakerpkg "github.com/sophialabs/proteusmock/internal/infrastructure/outbound/faker"
 )
 
 func buildExprEnv(ctx match.RenderContext) exprEnv {
@@ -60,6 +61,7 @@ func buildExprEnv(ctx match.RenderContext) exprEnv {
 		JsonPath: func(expression string) string {
 			return extractJSONPath(ctx.Body, expression)
 		},
+		Faker: fakerpkg.NewFakerContext(ctx.FakerSeed),
 	}
 }
 
