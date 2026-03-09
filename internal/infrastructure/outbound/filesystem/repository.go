@@ -377,6 +377,7 @@ func toScenario(ys *yamlScenario) *scenario.Scenario {
 			BodyFile:    ys.Response.BodyFile,
 			ContentType: ys.Response.ContentType,
 			Engine:      ys.Response.Engine,
+			FakerSeed:   ys.Response.FakerSeed,
 		},
 	}
 

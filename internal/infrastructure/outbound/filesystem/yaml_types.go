@@ -37,6 +37,7 @@ type yamlResponse struct {
 	BodyFile    string            `yaml:"body_file,omitempty"`
 	ContentType string            `yaml:"content_type,omitempty"`
 	Engine      string            `yaml:"engine,omitempty"`
+	FakerSeed   *int64            `yaml:"faker_seed,omitempty"`
 }
 
 type yamlPolicy struct {

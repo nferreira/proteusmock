@@ -76,6 +76,7 @@ type RenderContext struct {
 	PathParams  map[string]string
 	Body        []byte
 	Now         string // ISO-8601 timestamp
+	FakerSeed   *int64
 }
 
 // CompiledResponse is a resolved response ready to serve.
@@ -85,6 +86,7 @@ type CompiledResponse struct {
 	Body        []byte       // used when Renderer is nil
 	Renderer    BodyRenderer // non-nil for dynamic bodies
 	ContentType string
+	FakerSeed   *int64
 }
 
 // CompiledPolicy holds resolved policy configuration.

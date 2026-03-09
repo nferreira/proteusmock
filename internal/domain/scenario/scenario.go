@@ -70,6 +70,7 @@ type Response struct {
 	BodyFile    string
 	ContentType string
 	Engine      string // "" = static, "expr", "jinja2"
+	FakerSeed   *int64
 }
 
 // Policy defines rate limiting, latency simulation, and pagination.

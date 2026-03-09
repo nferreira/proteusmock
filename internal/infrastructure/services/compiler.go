@@ -274,6 +274,7 @@ func (c *Compiler) compileResponse(r *scenario.Response) (match.CompiledResponse
 		Status:      r.Status,
 		Headers:     r.Headers,
 		ContentType: r.ContentType,
+		FakerSeed:   r.FakerSeed,
 	}
 
 	if resp.Status == 0 {
