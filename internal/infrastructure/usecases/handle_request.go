@@ -3,6 +3,7 @@ package usecases
 import (
 	"context"
 	"math/rand/v2"
+	"strings"
 	"time"
 
 	"github.com/sophialabs/proteusmock/internal/domain/match"
@@ -103,9 +104,12 @@ func (uc *HandleRequestUseCase) Execute(ctx context.Context, req *match.Incoming
 	}
 
 	resp := matched.Response
-	// Infer content type if not explicitly set.
+	// Infer content type if not explicitly set. Prefer response.content_type, then
+	// Content-Type header from the scenario, so header-only YAML (common in pms_mock)
+	// is not overwritten by text/plain body sniffing on JSON payloads.
 	if resp.ContentType == "" {
-		resp.ContentType = services.InferContentType("", "", resp.Body)
+		explicit := contentTypeFromHeaders(resp.Headers)
+		resp.ContentType = services.InferContentType(explicit, "", resp.Body)
 	}
 	result.Response = &resp
 
@@ -117,4 +121,13 @@ func (uc *HandleRequestUseCase) Execute(ctx context.Context, req *match.Incoming
 	uc.traceBuf.Add(entry)
 
 	return result
+}
+
+func contentTypeFromHeaders(headers map[string]string) string {
+	for k, v := range headers {
+		if strings.EqualFold(k, "Content-Type") && v != "" {
+			return strings.TrimSpace(strings.Split(v, ";")[0])
+		}
+	}
+	return ""
 }
