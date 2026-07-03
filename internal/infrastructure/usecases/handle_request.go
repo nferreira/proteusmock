@@ -126,7 +126,7 @@ func (uc *HandleRequestUseCase) Execute(ctx context.Context, req *match.Incoming
 func contentTypeFromHeaders(headers map[string]string) string {
 	for k, v := range headers {
 		if strings.EqualFold(k, "Content-Type") && v != "" {
-			return strings.TrimSpace(strings.Split(v, ";")[0])
+			return strings.TrimSpace(v)
 		}
 	}
 	return ""

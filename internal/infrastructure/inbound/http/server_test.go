@@ -113,6 +113,66 @@ func TestMockHandler_MatchesGET(t *testing.T) {
 	}
 }
 
+func TestMockHandler_PreservesContentTypeCharset(t *testing.T) {
+	srv, _ := buildTestServer(&match.CompiledScenario{
+		ID:       "yardi-xml",
+		Name:     "Yardi XML",
+		Method:   "POST",
+		PathKey:  "POST:/",
+		Priority: 10,
+		Predicates: []match.FieldPredicate{
+			{Field: "method", Predicate: func(s string) bool { return s == "POST" }},
+		},
+		Response: match.CompiledResponse{
+			Status: 200,
+			Headers: map[string]string{
+				"Content-Type": "text/xml; charset=utf-8",
+			},
+			Body:        []byte(`<FirstName>A'Riyah</FirstName>`),
+			ContentType: "text/xml; charset=utf-8",
+		},
+	})
+
+	req := httptest.NewRequest("POST", "/", strings.NewReader("<soap/>"))
+	w := httptest.NewRecorder()
+	srv.ServeHTTP(w, req)
+
+	resp := w.Result()
+	if got := resp.Header.Get("Content-Type"); got != "text/xml; charset=utf-8" {
+		t.Errorf("expected charset in Content-Type, got %q", got)
+	}
+}
+
+func TestMockHandler_ScenarioHeaderCharsetNotOverwrittenByStrippedContentType(t *testing.T) {
+	srv, _ := buildTestServer(&match.CompiledScenario{
+		ID:       "yardi-xml-stripped",
+		Name:     "Yardi XML stripped ContentType field",
+		Method:   "POST",
+		PathKey:  "POST:/",
+		Priority: 10,
+		Predicates: []match.FieldPredicate{
+			{Field: "method", Predicate: func(s string) bool { return s == "POST" }},
+		},
+		Response: match.CompiledResponse{
+			Status: 200,
+			Headers: map[string]string{
+				"Content-Type": "text/xml; charset=utf-8",
+			},
+			Body:        []byte(`<FirstName>A'Riyah</FirstName>`),
+			ContentType: "text/xml",
+		},
+	})
+
+	req := httptest.NewRequest("POST", "/", strings.NewReader("<soap/>"))
+	w := httptest.NewRecorder()
+	srv.ServeHTTP(w, req)
+
+	resp := w.Result()
+	if got := resp.Header.Get("Content-Type"); got != "text/xml; charset=utf-8" {
+		t.Errorf("expected scenario header charset preserved, got %q", got)
+	}
+}
+
 func TestMockHandler_NoMatch_Returns404WithDebug(t *testing.T) {
 	srv, _ := buildTestServer(&match.CompiledScenario{
 		ID:       "post-only",

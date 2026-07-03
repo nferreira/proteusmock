@@ -302,7 +302,7 @@ func (s *Server) mockHandler(w http.ResponseWriter, r *http.Request) {
 	for k, v := range resp.Headers {
 		w.Header().Set(k, v)
 	}
-	if resp.ContentType != "" {
+	if resp.ContentType != "" && !hasHeader(resp.Headers, "Content-Type") {
 		w.Header().Set("Content-Type", resp.ContentType)
 	}
 	w.WriteHeader(resp.Status)
@@ -311,6 +311,15 @@ func (s *Server) mockHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	s.logger.Info("request matched", "method", r.Method, "path", r.URL.Path, "scenario", result.TraceEntry.MatchedID, "status", resp.Status)
+}
+
+func hasHeader(headers map[string]string, name string) bool {
+	for k := range headers {
+		if strings.EqualFold(k, name) {
+			return true
+		}
+	}
+	return false
 }
 
 func buildDebugResponse(method, path string, entry trace.Entry) map[string]any {

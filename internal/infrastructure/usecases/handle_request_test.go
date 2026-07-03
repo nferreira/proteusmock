@@ -184,6 +184,42 @@ func TestHandleRequest_ContentTypeInference(t *testing.T) {
 	}
 }
 
+func TestHandleRequest_ContentTypeFromHeadersPreservesCharset(t *testing.T) {
+	uc := newHandleRequestUC(true)
+	req := &match.IncomingRequest{
+		Method:  "POST",
+		Path:    "/",
+		Headers: map[string]string{},
+	}
+	candidates := []*match.CompiledScenario{
+		{
+			ID:       "xml-charset",
+			Method:   "POST",
+			PathKey:  "POST:/",
+			Priority: 10,
+			Predicates: []match.FieldPredicate{
+				{Field: "method", Predicate: func(s string) bool { return s == "POST" }},
+			},
+			Response: match.CompiledResponse{
+				Status: 200,
+				Headers: map[string]string{
+					"Content-Type": "text/xml; charset=utf-8",
+				},
+				Body: []byte(`<FirstName>A'Riyah</FirstName>`),
+			},
+		},
+	}
+
+	result := uc.Execute(context.Background(), req, candidates)
+
+	if !result.Matched {
+		t.Fatal("expected match")
+	}
+	if result.Response.ContentType != "text/xml; charset=utf-8" {
+		t.Errorf("expected charset preserved, got %q", result.Response.ContentType)
+	}
+}
+
 func TestHandleRequest_LatencyCancelled(t *testing.T) {
 	uc := newHandleRequestUC(true)
 	req := &match.IncomingRequest{
