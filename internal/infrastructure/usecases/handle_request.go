@@ -103,7 +103,7 @@ func (uc *HandleRequestUseCase) Execute(ctx context.Context, req *match.Incoming
 		}
 	}
 
-	resp := matched.Response
+	resp := matched.NextResponse()
 	// Infer content type if not explicitly set. Prefer response.content_type, then
 	// Content-Type header from the scenario, so header-only YAML (common in pms_mock)
 	// is not overwritten by text/plain body sniffing on JSON payloads.

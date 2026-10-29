@@ -1,5 +1,7 @@
 package match
 
+import "sync/atomic"
+
 // Predicate tests a string value and returns true if it matches.
 type Predicate func(string) bool
 
@@ -60,7 +62,37 @@ type CompiledScenario struct {
 	Predicates []FieldPredicate
 	Response   CompiledResponse
 	Policy     *CompiledPolicy
+
+	// Steps is the compiled call-order sequence; empty means Response always applies.
+	Steps []CompiledStep
+	calls atomic.Int64
 }
+
+// CompiledStep is one compiled step of a response sequence.
+type CompiledStep struct {
+	Times    int
+	Response CompiledResponse
+}
+
+// NextResponse returns the response for this call. Without a sequence it is
+// Response; with one, each call advances a counter through the steps and the
+// last step repeats once the sequence is exhausted.
+func (cs *CompiledScenario) NextResponse() CompiledResponse {
+	if len(cs.Steps) == 0 {
+		return cs.Response
+	}
+	n := cs.calls.Add(1) - 1
+	for _, step := range cs.Steps {
+		if n < int64(step.Times) {
+			return step.Response
+		}
+		n -= int64(step.Times)
+	}
+	return cs.Steps[len(cs.Steps)-1].Response
+}
+
+// ResetSequence rewinds the sequence so the next call gets the first step.
+func (cs *CompiledScenario) ResetSequence() { cs.calls.Store(0) }
 
 // BodyRenderer renders a response body dynamically. Nil means static body.
 type BodyRenderer interface {

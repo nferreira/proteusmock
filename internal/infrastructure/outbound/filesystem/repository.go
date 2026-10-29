@@ -381,6 +381,21 @@ func toScenario(ys *yamlScenario) *scenario.Scenario {
 		},
 	}
 
+	for _, step := range ys.Sequence {
+		s.Sequence = append(s.Sequence, scenario.SequenceStep{
+			Times: step.Times,
+			Response: scenario.Response{
+				Status:      step.Status,
+				Headers:     step.Headers,
+				Body:        step.Body,
+				BodyFile:    step.BodyFile,
+				ContentType: step.ContentType,
+				Engine:      step.Engine,
+				FakerSeed:   step.FakerSeed,
+			},
+		})
+	}
+
 	if ys.When.Headers != nil {
 		s.When.Headers = make(map[string]scenario.StringMatcher, len(ys.When.Headers))
 		for k, v := range ys.When.Headers {

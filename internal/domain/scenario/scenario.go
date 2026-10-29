@@ -7,6 +7,9 @@ type Scenario struct {
 	Priority int
 	When     WhenClause
 	Response Response
+	// Sequence, when non-empty, replaces Response: the Nth call to the scenario is
+	// answered by the step whose cumulative Times covers N; the last step repeats.
+	Sequence []SequenceStep
 	Policy   *Policy
 
 	// SourceFile is the absolute path to the YAML file this scenario was loaded from.
@@ -71,6 +74,13 @@ type Response struct {
 	ContentType string
 	Engine      string // "" = static, "expr", "jinja2"
 	FakerSeed   *int64
+}
+
+// SequenceStep is one answer in a scenario's call-order sequence.
+type SequenceStep struct {
+	// Times is how many consecutive calls this step answers (minimum 1).
+	Times    int
+	Response Response
 }
 
 // Policy defines rate limiting, latency simulation, and pagination.

@@ -1207,3 +1207,40 @@ func TestCompiler_BodyFileWithTemplate(t *testing.T) {
 		t.Error("expected renderer for body_file + engine")
 	}
 }
+
+func TestCompiler_SequenceStepsAreCompiledInOrder(t *testing.T) {
+	compiler := newTestCompiler(t)
+	cs, err := compiler.CompileScenario(&scenario.Scenario{
+		ID:   "seq",
+		When: scenario.WhenClause{Method: "GET", Path: "/x"},
+		Sequence: []scenario.SequenceStep{
+			{Times: 2, Response: scenario.Response{Status: 200, Body: "empty"}},
+			{Response: scenario.Response{Status: 200, Body: "full"}},
+		},
+	})
+	if err != nil {
+		t.Fatalf("CompileScenario failed: %v", err)
+	}
+	var got []string
+	for i := 0; i < 4; i++ {
+		got = append(got, string(cs.NextResponse().Body))
+	}
+	want := []string{"empty", "empty", "full", "full"}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Fatalf("got %v, want %v", got, want)
+		}
+	}
+}
+
+func TestCompiler_SequenceStepWithMissingBodyFileFails(t *testing.T) {
+	compiler := newTestCompiler(t)
+	_, err := compiler.CompileScenario(&scenario.Scenario{
+		ID:       "seq",
+		When:     scenario.WhenClause{Method: "GET", Path: "/x"},
+		Sequence: []scenario.SequenceStep{{Response: scenario.Response{BodyFile: "nope.json"}}},
+	})
+	if err == nil {
+		t.Fatal("expected an error for a step whose body_file does not exist")
+	}
+}
