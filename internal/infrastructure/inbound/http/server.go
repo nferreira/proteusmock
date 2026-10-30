@@ -483,8 +483,9 @@ func (s *Server) handleReset(w http.ResponseWriter, _ *http.Request) {
 			}
 		}
 	}
+	s.handleReqUC.Counters().Reset()
 	w.Header().Set("Content-Type", "application/json")
-	writeJSON(w, map[string]any{"status": "ok", "sequences_reset": reset})
+	writeJSON(w, map[string]any{"status": "ok", "sequences_reset": reset, "counters_reset": true})
 }
 
 func (s *Server) handleGetScenario(w http.ResponseWriter, r *http.Request) {

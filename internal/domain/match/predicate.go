@@ -1,6 +1,10 @@
 package match
 
-import "sync/atomic"
+import (
+	"sort"
+	"sync"
+	"sync/atomic"
+)
 
 // Predicate tests a string value and returns true if it matches.
 type Predicate func(string) bool
@@ -66,6 +70,48 @@ type CompiledScenario struct {
 	// Steps is the compiled call-order sequence; empty means Response always applies.
 	Steps []CompiledStep
 	calls atomic.Int64
+
+	// Bump lists the counters incremented when this scenario is served.
+	Bump []string
+	// Counter and Stages, when Stages is not empty, select the response by the counter's value.
+	Counter string
+	Stages  []CompiledStage
+}
+
+// CompiledStage is one compiled stage of a counter-driven response.
+type CompiledStage struct {
+	From     int
+	Response CompiledResponse
+}
+
+// Counters are named integers shared by all scenarios of a server.
+type Counters struct {
+	mu sync.Mutex
+	m  map[string]int
+}
+
+// Inc adds one to the named counter.
+func (c *Counters) Inc(name string) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.m == nil {
+		c.m = map[string]int{}
+	}
+	c.m[name]++
+}
+
+// Get returns the current value of the named counter (0 when never incremented).
+func (c *Counters) Get(name string) int {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.m[name]
+}
+
+// Reset sets every counter back to zero.
+func (c *Counters) Reset() {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.m = nil
 }
 
 // CompiledStep is one compiled step of a response sequence.
@@ -77,7 +123,15 @@ type CompiledStep struct {
 // NextResponse returns the response for this call. Without a sequence it is
 // Response; with one, each call advances a counter through the steps and the
 // last step repeats once the sequence is exhausted.
-func (cs *CompiledScenario) NextResponse() CompiledResponse {
+func (cs *CompiledScenario) NextResponse(counters *Counters) CompiledResponse {
+	if len(cs.Stages) > 0 && counters != nil {
+		value := counters.Get(cs.Counter)
+		i := sort.Search(len(cs.Stages), func(i int) bool { return cs.Stages[i].From > value })
+		if i > 0 {
+			return cs.Stages[i-1].Response
+		}
+		return cs.Stages[0].Response
+	}
 	if len(cs.Steps) == 0 {
 		return cs.Response
 	}

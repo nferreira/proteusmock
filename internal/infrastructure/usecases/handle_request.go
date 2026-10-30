@@ -28,7 +28,11 @@ type HandleRequestUseCase struct {
 	rateLimiter ports.RateLimiter
 	logger      ports.Logger
 	traceBuf    *trace.RingBuffer
+	counters    *match.Counters
 }
+
+// Counters exposes the shared counters, for the admin reset.
+func (uc *HandleRequestUseCase) Counters() *match.Counters { return uc.counters }
 
 // NewHandleRequestUseCase creates a new use case.
 func NewHandleRequestUseCase(
@@ -44,6 +48,7 @@ func NewHandleRequestUseCase(
 		rateLimiter: rateLimiter,
 		logger:      logger,
 		traceBuf:    traceBuf,
+		counters:    &match.Counters{},
 	}
 }
 
@@ -103,7 +108,10 @@ func (uc *HandleRequestUseCase) Execute(ctx context.Context, req *match.Incoming
 		}
 	}
 
-	resp := matched.NextResponse()
+	resp := matched.NextResponse(uc.counters)
+	for _, name := range matched.Bump {
+		uc.counters.Inc(name)
+	}
 	// Infer content type if not explicitly set. Prefer response.content_type, then
 	// Content-Type header from the scenario, so header-only YAML (common in pms_mock)
 	// is not overwritten by text/plain body sniffing on JSON payloads.
