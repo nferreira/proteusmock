@@ -49,6 +49,16 @@ func (c *Compiler) CompileScenario(s *scenario.Scenario) (*match.CompiledScenari
 		return nil, fmt.Errorf("failed to compile response for %q: %w", s.ID, err)
 	}
 
+	steps, err := c.compileSequence(s)
+	if err != nil {
+		return nil, err
+	}
+
+	counter, stages, err := c.compileStaged(s)
+	if err != nil {
+		return nil, err
+	}
+
 	cs := &match.CompiledScenario{
 		ID:         s.ID,
 		Name:       s.Name,
@@ -57,6 +67,10 @@ func (c *Compiler) CompileScenario(s *scenario.Scenario) (*match.CompiledScenari
 		PathKey:    s.When.Method + ":" + s.When.Path,
 		Predicates: predicates,
 		Response:   resp,
+		Steps:      steps,
+		Bump:       s.Bump,
+		Counter:    counter,
+		Stages:     stages,
 	}
 
 	if s.Policy != nil {
@@ -267,6 +281,43 @@ func xpathPredicate(expr string, valueMatcher match.Predicate) match.Predicate {
 
 		return valueMatcher(node.InnerText())
 	}
+}
+
+func (c *Compiler) compileStaged(s *scenario.Scenario) (string, []match.CompiledStage, error) {
+	if s.Staged == nil {
+		return "", nil, nil
+	}
+	if s.Staged.Counter == "" {
+		return "", nil, fmt.Errorf("scenario %q: staged needs a counter name", s.ID)
+	}
+	stages := make([]match.CompiledStage, 0, len(s.Staged.Stages))
+	for i := range s.Staged.Stages {
+		st := &s.Staged.Stages[i]
+		resp, err := c.compileResponse(&st.Response)
+		if err != nil {
+			return "", nil, fmt.Errorf("failed to compile stage %d of %q: %w", i, s.ID, err)
+		}
+		stages = append(stages, match.CompiledStage{From: st.From, Response: resp})
+	}
+	sort.SliceStable(stages, func(i, j int) bool { return stages[i].From < stages[j].From })
+	return s.Staged.Counter, stages, nil
+}
+
+func (c *Compiler) compileSequence(s *scenario.Scenario) ([]match.CompiledStep, error) {
+	steps := make([]match.CompiledStep, 0, len(s.Sequence))
+	for i := range s.Sequence {
+		step := &s.Sequence[i]
+		resp, err := c.compileResponse(&step.Response)
+		if err != nil {
+			return nil, fmt.Errorf("failed to compile sequence step %d of %q: %w", i, s.ID, err)
+		}
+		times := step.Times
+		if times < 1 {
+			times = 1
+		}
+		steps = append(steps, match.CompiledStep{Times: times, Response: resp})
+	}
+	return steps, nil
 }
 
 func (c *Compiler) compileResponse(r *scenario.Response) (match.CompiledResponse, error) {

@@ -85,6 +85,7 @@ func (s *Server) BuildRouter(idx *services.ScenarioIndex) *chi.Mux {
 		r.Get("/files", s.handleListFiles)
 		r.Get("/trace", s.handleGetTrace)
 		r.Post("/reload", s.handleReload)
+		r.Post("/reset", s.handleReset)
 	})
 
 	// Dashboard SPA (embedded). Serves files directly to avoid http.FileServer redirect loops.
@@ -468,6 +469,23 @@ func (s *Server) handleReload(w http.ResponseWriter, r *http.Request) {
 		"status":  "ok",
 		"message": "scenarios reloaded",
 	})
+}
+
+// handleReset rewinds every response sequence, so a client can start a new run
+// from the first step without reloading the scenarios.
+func (s *Server) handleReset(w http.ResponseWriter, _ *http.Request) {
+	reset := 0
+	if idx := s.index.Load(); idx != nil {
+		for _, cs := range idx.All() {
+			if len(cs.Steps) > 0 {
+				cs.ResetSequence()
+				reset++
+			}
+		}
+	}
+	s.handleReqUC.Counters().Reset()
+	w.Header().Set("Content-Type", "application/json")
+	writeJSON(w, map[string]any{"status": "ok", "sequences_reset": reset, "counters_reset": true})
 }
 
 func (s *Server) handleGetScenario(w http.ResponseWriter, r *http.Request) {

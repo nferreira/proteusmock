@@ -7,7 +7,15 @@ type Scenario struct {
 	Priority int
 	When     WhenClause
 	Response Response
-	Policy   *Policy
+	// Sequence, when non-empty, replaces Response: the Nth call to the scenario is
+	// answered by the step whose cumulative Times covers N; the last step repeats.
+	Sequence []SequenceStep
+	// Bump names the counters this scenario increments each time it is served, so one request can change
+	// what a later one is answered with (a write that a read then sees).
+	Bump []string
+	// Staged, when set, answers by the value of a counter instead of by call order.
+	Staged *Staged
+	Policy *Policy
 
 	// SourceFile is the absolute path to the YAML file this scenario was loaded from.
 	SourceFile string
@@ -71,6 +79,26 @@ type Response struct {
 	ContentType string
 	Engine      string // "" = static, "expr", "jinja2"
 	FakerSeed   *int64
+}
+
+// Staged selects the response by the current value of a named counter: the stage with the highest
+// From that is not above the value is used, so a stage keeps answering until a later one is reached.
+type Staged struct {
+	Counter string
+	Stages  []Stage
+}
+
+// Stage is one answer of a Staged scenario, used from counter value From.
+type Stage struct {
+	From     int
+	Response Response
+}
+
+// SequenceStep is one answer in a scenario's call-order sequence.
+type SequenceStep struct {
+	// Times is how many consecutive calls this step answers (minimum 1).
+	Times    int
+	Response Response
 }
 
 // Policy defines rate limiting, latency simulation, and pagination.

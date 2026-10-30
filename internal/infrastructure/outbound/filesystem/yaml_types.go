@@ -7,6 +7,9 @@ type yamlScenario struct {
 	Priority int          `yaml:"priority"`
 	When     yamlWhen     `yaml:"when"`
 	Response yamlResponse `yaml:"response"`
+	Sequence []yamlStep   `yaml:"sequence,omitempty"`
+	Bump     []string     `yaml:"bump,omitempty"`
+	Staged   *yamlStaged  `yaml:"staged,omitempty"`
 	Policy   *yamlPolicy  `yaml:"policy,omitempty"`
 }
 
@@ -38,6 +41,21 @@ type yamlResponse struct {
 	ContentType string            `yaml:"content_type,omitempty"`
 	Engine      string            `yaml:"engine,omitempty"`
 	FakerSeed   *int64            `yaml:"faker_seed,omitempty"`
+}
+
+type yamlStaged struct {
+	Counter string      `yaml:"counter"`
+	Stages  []yamlStage `yaml:"stages"`
+}
+
+type yamlStage struct {
+	From         int `yaml:"from"`
+	yamlResponse `yaml:",inline"`
+}
+
+type yamlStep struct {
+	Times        int `yaml:"times,omitempty"`
+	yamlResponse `yaml:",inline"`
 }
 
 type yamlPolicy struct {
