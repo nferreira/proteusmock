@@ -5,13 +5,19 @@ CMD    := ./cmd/proteusmock
 
 # ── Build & Run ──────────────────────────────────────────────────────
 
-.PHONY: build build-dashboard run dev-dashboard
+.PHONY: build build-frontend build-binary run dev-dashboard
 
-build-dashboard: ## Build the React dashboard SPA
-	cd ui/dashboard && npm ci && npm run build
+DASHBOARD_DIR  := ui/dashboard
+DASHBOARD_DIST := $(DASHBOARD_DIR)/dist
 
-build: build-dashboard ## Build the binary to bin/proteusmock (includes dashboard)
-	go build -o bin/$(BINARY) $(CMD)
+build-frontend: ## Build only the React dashboard SPA (ui/dashboard/dist)
+	cd $(DASHBOARD_DIR) && npm ci && npm run build
+
+build-binary: ## Build only the Go binary to bin/proteusmock (needs a built dashboard; run build-frontend first)
+	@test -f $(DASHBOARD_DIST)/index.html || { echo "error: $(DASHBOARD_DIST) is missing; run 'make build-frontend' first"; exit 1; }
+	CGO_ENABLED=0 go build -ldflags="-s -w" -trimpath -o bin/$(BINARY) $(CMD)
+
+build: build-frontend build-binary ## Build the dashboard, then the binary (includes dashboard)
 
 run: ## Run the server (--root ./mock --port 8080)
 	go run $(CMD) --root ./mock --port 8080
