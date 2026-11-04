@@ -8,7 +8,7 @@ COPY ui/dashboard/ .
 RUN npm run build
 
 # ── Stage 1: deps — cache Go modules ────────────────────────────────
-FROM golang:1.25-bookworm AS deps
+FROM golang:1.26-bookworm AS deps
 
 WORKDIR /src
 

@@ -23,7 +23,7 @@ jobs:
           cache-dependency-path: ui/dashboard/package-lock.json
 
       - name: Build dashboard
-        run: cd ui/dashboard && npm ci && npm run build
+        run: make build-frontend
 
       - name: Upload dashboard dist
         uses: actions/upload-artifact@v4
@@ -145,7 +145,7 @@ jobs:
           go-version-file: go.mod
 
       - name: Build
-        run: CGO_ENABLED=0 go build -ldflags="-s -w" -trimpath -o bin/proteusmock ./cmd/proteusmock
+        run: make build-binary
 
       - name: Upload binary artifact
         uses: actions/upload-artifact@v4
